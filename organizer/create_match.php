@@ -1,121 +1,105 @@
-<?php
-$id = (int)($_GET["id"] ?? 0);
-
-// Exemple si pas de DB (tu remplaceras par MatchSport->getById($id))
-$match = $match ?? [
-  "id"=>$id ?: 1,
-  "team1"=>"Raja",
-  "team2"=>"Wydad",
-  "city"=>"Casablanca",
-  "stadium"=>"Stade Mohammed V",
-  "date"=>"2026-01-03 20:00",
-  "duration"=>90,
-  "status"=>"approved",
-  "categories"=>[
-    ["id"=>1,"name"=>"VIP","price"=>200,"quota"=>200],
-    ["id"=>2,"name"=>"Cat 1","price"=>120,"quota"=>600],
-    ["id"=>3,"name"=>"Cat 2","price"=>80,"quota"=>1200],
-  ]
-];
-
-$badge = ($match["status"]==="approved") ? "ok" : (($match["status"]==="pending") ? "pending" : "bad");
-$label = ($match["status"]==="approved") ? "Publié" : (($match["status"]==="pending") ? "En attente" : "Refusé");
-?>
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>BuyMatch — Détails</title>
-  <link rel="stylesheet" href="../assets/style.css"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BuyMatch | Organisateur - Créer match</title>
+  <link rel="stylesheet" href="../assets/style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
 
 <header class="topbar">
-  <div class="container nav">
-    <a class="brand" href="home.php">
-      <span class="logo"><i class="fa-solid fa-ticket"></i></span>
-      <span>BuyMatch</span>
-    </a>
-    <nav class="navlinks" data-nav>
-      <a href="home.php"><i class="fa-solid fa-house"></i> Accueil</a>
-      <a href="matchs.php"><i class="fa-solid fa-futbol"></i> Matchs</a>
-      <a href="../auth/login.php"><i class="fa-solid fa-right-to-bracket"></i> Connexion</a>
-    </nav>
-    <div class="actions">
-      <button class="iconbtn mobileToggle" data-nav-toggle aria-label="Menu">
-        <i class="fa-solid fa-bars"></i>
-      </button>
-      <a class="btn ghost" href="matchs.php"><i class="fa-solid fa-arrow-left"></i> Retour</a>
+  <div class="container">
+    <div class="nav">
+      <a class="brand" href="../home.php"><i class="fa-solid fa-ticket"></i><span>BuyMatch</span></a>
+      <nav class="navlinks">
+        <a class="active" href="create_match.php"><i class="fa-solid fa-plus"></i> Demande match</a>
+        <a href="stats.php"><i class="fa-solid fa-chart-column"></i> Statistiques</a>
+        <a href="../home.php"><i class="fa-solid fa-house"></i> Site</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="iconbtn mobile-toggle" onclick="toggleMobileMenu()"><i class="fa-solid fa-bars"></i></button>
+        <a class="btn btn-danger" href="../login.php"><i class="fa-solid fa-arrow-right-from-bracket"></i> Déconnexion</a>
+      </div>
+    </div>
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="create_match.php">Demande match</a>
+      <a href="stats.php">Statistiques</a>
+      <a href="../home.php">Site</a>
     </div>
   </div>
 </header>
 
-<main class="container section">
-  <div class="panel">
-    <div class="sectionHead" style="margin:0 0 12px;">
+<section class="section">
+  <div class="container">
+    <div class="section-head">
       <div>
-        <h2 class="h2"><?php echo htmlspecialchars($match["team1"]." vs ".$match["team2"]); ?></h2>
-        <p class="sub">
-          <span class="badge <?php echo $badge; ?>"><i class="fa-solid fa-circle-info"></i> <?php echo $label; ?></span>
-        </p>
-      </div>
-      <div class="tools">
-        <a class="btn primary" href="buy_ticket.php?match_id=<?php echo (int)$match["id"]; ?>">
-          <i class="fa-solid fa-cart-shopping"></i> Acheter
-        </a>
+        <h2>Créer une demande de match</h2>
+        <p>Le match sera validé par l’administrateur avant publication</p>
       </div>
     </div>
 
-    <div class="meta" style="margin-bottom:10px;">
-      <span><i class="fa-solid fa-location-dot"></i> <?php echo htmlspecialchars($match["city"]); ?></span>
-      <span><i class="fa-solid fa-building"></i> <?php echo htmlspecialchars($match["stadium"]); ?></span>
-      <span><i class="fa-regular fa-clock"></i> <?php echo htmlspecialchars($match["date"]); ?></span>
-      <span><i class="fa-solid fa-hourglass-half"></i> <?php echo (int)$match["duration"]; ?> min</span>
-    </div>
+    <div class="form">
+      <div class="form-row">
+        <div class="field">
+          <label>Équipe 1</label>
+          <input class="input" placeholder="Nom équipe 1" />
+        </div>
+        <div class="field">
+          <label>Équipe 2</label>
+          <input class="input" placeholder="Nom équipe 2" />
+        </div>
+      </div>
 
-    <div class="alert">
-      <i class="fa-solid fa-lock"></i>
-      Achat disponible uniquement après connexion. Si tu n’es pas connecté, tu seras redirigé vers login.
+      <div class="form-row" style="margin-top:12px;">
+        <div class="field">
+          <label>Date</label>
+          <input class="input" type="date" />
+        </div>
+        <div class="field">
+          <label>Heure</label>
+          <input class="input" type="time" />
+        </div>
+      </div>
+
+      <div class="form-row" style="margin-top:12px;">
+        <div class="field">
+          <label>Lieu</label>
+          <input class="input" placeholder="Stade + ville" />
+        </div>
+        <div class="field">
+          <label>Places (max 2000)</label>
+          <input class="input" type="number" min="1" max="2000" value="2000" />
+        </div>
+      </div>
+
+      <div class="form-row" style="margin-top:12px;">
+        <div class="field">
+          <label>Catégorie 1 (prix)</label>
+          <input class="input" placeholder="Ex: VIP - 250" />
+        </div>
+        <div class="field">
+          <label>Catégorie 2 (prix)</label>
+          <input class="input" placeholder="Ex: Standard - 120" />
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:12px;">
+        <label>Catégorie 3 (prix)</label>
+        <input class="input" placeholder="Ex: Économie - 60" />
+      </div>
+
+      <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn btn-primary" type="button"><i class="fa-solid fa-paper-plane"></i> Envoyer la demande</button>
+        <a class="btn btn-ghost" href="../home.php"><i class="fa-solid fa-arrow-left"></i> Retour site</a>
+      </div>
     </div>
   </div>
-
-  <div class="sectionHead" style="margin-top:18px;">
-    <div>
-      <h2 class="h2">Catégories & prix</h2>
-      <p class="sub">Maximum 3 catégories. Exemple d’affichage.</p>
-    </div>
-  </div>
-
-  <div class="grid">
-    <?php foreach($match["categories"] as $c): ?>
-      <article class="card">
-        <div class="thumb">
-          <i class="fa-solid fa-layer-group"></i>
-          <span><?php echo htmlspecialchars($c["name"]); ?></span>
-        </div>
-        <div class="cardBody">
-          <div class="meta">
-            <span><i class="fa-solid fa-tag"></i> <?php echo (int)$c["price"]; ?> DH</span>
-            <span><i class="fa-solid fa-chair"></i> Quota: <?php echo (int)$c["quota"]; ?></span>
-          </div>
-        </div>
-        <div class="cardFoot">
-          <a class="btn small" href="buy_ticket.php?match_id=<?php echo (int)$match["id"]; ?>&cat_id=<?php echo (int)$c["id"]; ?>">
-            Choisir <i class="fa-solid fa-arrow-right"></i>
-          </a>
-        </div>
-      </article>
-    <?php endforeach; ?>
-  </div>
-</main>
+</section>
 
 <footer class="footer">
-  <div class="container row">
-    <div>© <?php echo date("Y"); ?> BuyMatch</div>
-    <div class="sub">Détails match · Catégories · Achat</div>
-  </div>
+  <div class="container">© 2026 BuyMatch</div>
 </footer>
 
 <script src="../assets/script.js"></script>
