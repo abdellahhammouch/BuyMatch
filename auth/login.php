@@ -29,25 +29,44 @@
       </div>
     </div>
 
-    <div class="form" style="max-width:520px; margin:0 auto;">
-      <div class="field">
-        <label>Email</label>
-        <input class="input" placeholder="email@exemple.com" />
+    <form action="" method="POST" style="max-width:520px; margin:0 auto;">
+      <div class="form-group">
+        <label for="role"><i class="fas fa-user-tag"></i> Rôle</label>
+        <div class="input-group">
+          <i class="fas fa-user-tag"></i>
+          <select name="role" id="role" class="form-control" required>
+            <option value="">Sélectionnez votre rôle</option>
+            <option value="admin">Admin</option>
+            <option value="organisateur">Organisateur</option>
+            <option value="acheteur">Acheteur</option>
+          </select>
+        </div>
       </div>
-      <div class="field" style="margin-top:12px;">
-        <label>Mot de passe</label>
-        <input class="input" type="password" placeholder="••••••••" />
+      <div class="form-group">
+          <label>Email</label>
+          <div class="input-group">
+              <i class="fas fa-envelope"></i>
+              <input type="email" name="email" class="form-control" required>
+          </div>
       </div>
 
-      <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn btn-primary" type="button"><i class="fa-solid fa-right-to-bracket"></i> Se connecter</button>
-        <a class="btn btn-ghost" href="home.php"><i class="fa-solid fa-arrow-left"></i> Retour</a>
+      <div class="form-group">
+        <label for="password"><i class="fas fa-lock"></i> Mot de passe</label>
+        <div class="input-group password-group">
+          <i class="fas fa-lock"></i>
+          <input type="password" name="password" id="password" class="form-control" placeholder="Votre mot de passe" required>
+
+          <button type="button" class="toggle-password" id="togglePassword" aria-label="Afficher le mot de passe">
+            <i class="fas fa-eye" id="toggleIcon"></i>
+          </button>
+        </div>
       </div>
 
-      <p style="margin:14px 0 0; color:var(--muted);">
-        Pas de compte ? <a href="register.php" style="color:var(--text); font-weight:800;">Créer un compte</a>
-      </p>
-    </div>
+      <button type="submit" name="login" class="btn-submit">
+          <i class="fas fa-right-to-bracket"></i> Se connecter
+      </button>
+    </form>
+
   </div>
 </section>
 

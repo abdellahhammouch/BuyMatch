@@ -54,3 +54,48 @@ document.addEventListener("DOMContentLoaded", () => {
   const qty = document.getElementById("qty");
   if(qty) qty.addEventListener("input", clampQty);
 });
+
+document.addEventListener("DOMContentLoaded", () => {
+  const input = document.getElementById("photoInput");
+  const img = document.getElementById("avatarPreview");
+  const circle = document.getElementById("avatarCircle");
+
+  if (!input || !img || !circle) return;
+
+  input.addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Veuillez choisir une image (png/jpg/webp).");
+      input.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      img.src = reader.result;
+      img.style.display = "block";
+
+      const icon = circle.querySelector("i");
+      if (icon) icon.style.display = "none";
+    };
+    reader.readAsDataURL(file);
+  });
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  const toggleBtn = document.getElementById("togglePassword");
+  const passInput = document.getElementById("password");
+  const icon = document.getElementById("toggleIcon");
+
+  if (toggleBtn && passInput && icon) {
+    toggleBtn.addEventListener("click", () => {
+      const isPassword = passInput.type === "password";
+      passInput.type = isPassword ? "text" : "password";
+      icon.classList.toggle("fa-eye");
+      icon.classList.toggle("fa-eye-slash");
+    });
+  }
+});
+
