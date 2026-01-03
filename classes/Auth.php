@@ -1,9 +1,9 @@
 <?php
 
-require_once __DIR__ . "Session.php";
-require_once __DIR__ . "Acheteur.php";
-require_once __DIR__ . "Organisateur.php";
-require_once __DIR__ . "Admin.php";
+require_once __DIR__ . "/Session.php";
+require_once __DIR__ . "/Acheteur.php";
+require_once __DIR__ . "/Organisateur.php";
+require_once __DIR__ . "/Admin.php";
 
 class Auth
 {
@@ -45,10 +45,8 @@ class Auth
 
         $hash = password_hash($password, PASSWORD_DEFAULT);
 
-        $stmt = $this->pdo->prepare("
-            INSERT INTO users (nom_user, prenom_user, email_user, phone_user, photo_user, password_user, role_user, is_active)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 1)
-        ");
+        $stmt = $this->pdo->prepare("INSERT INTO users (nom_user, prenom_user, email_user, phone_user, photo_user, password_user, role_user, is_active)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, 1)");
 
         $ok = $stmt->execute([$nom, $prenom, $email, $phone, $photo, $hash, $role]);
         if (!$ok) {
