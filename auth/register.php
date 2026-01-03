@@ -1,3 +1,16 @@
+<?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+session_start();
+require_once __DIR__ . "/../config/database.php";
+require_once __DIR__ . "/../classes/Auth.php";
+require_once __DIR__ . "/../classes/Session.php";
+
+
+?>
+
 <!doctype html>
 <html lang="fr">
 <head>
@@ -29,7 +42,7 @@
       </div>
     </div>
 
-    <form id="registerForm" action="" method="POST" enctype="multipart/form-data">
+    <form id="registerForm" action="register_handling.php" method="POST" enctype="multipart/form-data">
 
       <div class="avatar-upload">
         <div class="avatar-circle" id="avatarCircle">

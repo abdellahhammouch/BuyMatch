@@ -1,3 +1,15 @@
+<?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+session_start();
+require_once __DIR__ . "/../config/database.php";
+require_once __DIR__ . "/../classes/Auth.php";
+require_once __DIR__ . "/../classes/Session.php";
+
+?>
+
 <!doctype html>
 <html lang="fr">
 <head>
@@ -29,7 +41,7 @@
       </div>
     </div>
 
-    <form action="" method="POST" style="max-width:520px; margin:0 auto;">
+    <form action="login_handling.php" method="POST" style="max-width:520px; margin:0 auto;">
       <div class="form-group">
         <label for="role"><i class="fas fa-user-tag"></i> Rôle</label>
         <div class="input-group">
