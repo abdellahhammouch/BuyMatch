@@ -68,9 +68,17 @@ try {
     $pdo = Database::getInstance();
     $auth = new Auth($pdo);
 
-    $ok = $auth->register($nom, $prenom, $email, $phone, $photoPath, $password, $role);
+    $result = $auth->register([
+        "nom"      => $nom,
+        "prenom"   => $prenom,
+        "email"    => $email,
+        "phone"    => $phone,
+        "password" => $password,
+        "role"     => $role,
+        "photo"    => $photoPath
+    ]);
 
-    if ($ok) {
+    if (!empty($result["ok"])) {
         $_SESSION["success"] = "Inscription réussie. Connecte-toi maintenant.";
         header("Location: login.php");
         exit;

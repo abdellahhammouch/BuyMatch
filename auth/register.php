@@ -37,6 +37,23 @@ session_start();
         <p>Formulaire statique</p>
       </div>
     </div>
+    <?php if (!empty($_SESSION["errors"])): ?>
+      <div class="error-message">
+        <ul>
+          <?php foreach ($_SESSION["errors"] as $err): ?>
+            <li><?= htmlspecialchars($err) ?></li>
+          <?php endforeach; ?>
+        </ul>
+      </div>
+      <?php unset($_SESSION["errors"]); ?>
+    <?php endif; ?>
+
+    <?php if (!empty($_SESSION["success"])): ?>
+      <div class="success-message">
+        <?= htmlspecialchars($_SESSION["success"]); ?>
+      </div>
+      <?php unset($_SESSION["success"]); ?>
+    <?php endif; ?>
 
     <form id="registerForm" action="register_handling.php" method="POST" enctype="multipart/form-data">
 
