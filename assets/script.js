@@ -1,12 +1,30 @@
-// Mobile menu
 function toggleMobileMenu(){
   const menu = document.getElementById("mobileMenu");
   if(!menu) return;
-  const isOpen = menu.style.display === "block";
-  menu.style.display = isOpen ? "none" : "block";
+  const isOpen = menu.classList.contains("show");
+  if(isOpen) {
+    menu.classList.remove("show");
+  } else {
+    menu.classList.add("show");
+  }
 }
 
-// Simple filters for matchs.html
+function toggleProfile() {
+  const dropdown = document.getElementById('profileDropdown');
+  if(!dropdown) return;
+  dropdown.classList.toggle('show');
+}
+
+document.addEventListener('click', (e) => {
+  const profileTrigger = document.querySelector('.profile-trigger');
+  const dropdown = document.getElementById('profileDropdown');
+  if (profileTrigger && dropdown && 
+      !profileTrigger.contains(e.target) && 
+      !dropdown.contains(e.target)) {
+    dropdown.classList.remove('show');
+  }
+});
+
 function filterMatches(){
   const q = (document.getElementById("q")?.value || "").toLowerCase();
   const city = (document.getElementById("city")?.value || "").toLowerCase();
@@ -21,7 +39,6 @@ function filterMatches(){
   });
 }
 
-// Quantity limit (max 4)
 function clampQty(){
   const qty = document.getElementById("qty");
   if(!qty) return;
@@ -32,7 +49,6 @@ function clampQty(){
   qty.value = String(v);
 }
 
-// Basic "modal" (optional)
 function openModal(id){
   const m = document.getElementById(id);
   if(!m) return;
@@ -45,7 +61,7 @@ function closeModal(id){
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  // auto bind
+
   const q = document.getElementById("q");
   const city = document.getElementById("city");
   if(q) q.addEventListener("input", filterMatches);
@@ -53,38 +69,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const qty = document.getElementById("qty");
   if(qty) qty.addEventListener("input", clampQty);
-});
-
-document.addEventListener("DOMContentLoaded", () => {
+  
   const input = document.getElementById("photoInput");
   const img = document.getElementById("avatarPreview");
   const circle = document.getElementById("avatarCircle");
 
-  if (!input || !img || !circle) return;
+  if (input && img && circle) {
+    input.addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
 
-  input.addEventListener("change", (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
+      if (!file.type.startsWith("image/")) {
+        alert("Veuillez choisir une image (png/jpg/webp).");
+        input.value = "";
+        return;
+      }
 
-    if (!file.type.startsWith("image/")) {
-      alert("Veuillez choisir une image (png/jpg/webp).");
-      input.value = "";
-      return;
-    }
+      const reader = new FileReader();
+      reader.onload = () => {
+        img.src = reader.result;
+        img.style.display = "block";
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      img.src = reader.result;
-      img.style.display = "block";
-
-      const icon = circle.querySelector("i");
-      if (icon) icon.style.display = "none";
-    };
-    reader.readAsDataURL(file);
-  });
-});
-
-document.addEventListener("DOMContentLoaded", () => {
+        const icon = circle.querySelector("i");
+        if (icon) icon.style.display = "none";
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+  
   const toggleBtn = document.getElementById("togglePassword");
   const passInput = document.getElementById("password");
   const icon = document.getElementById("toggleIcon");
@@ -99,3 +111,46 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
+function showTicketModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+function closeTicketModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('ticket-modal')) {
+    e.target.style.display = 'none';
+  }
+});
+
+const input = document.getElementById("photoInput");
+  const preview = document.getElementById("photoPreview");
+
+  if (input && preview) {
+    input.addEventListener("change", function () {
+      const file = this.files && this.files[0];
+      if (!file) return;
+
+      const url = URL.createObjectURL(file);
+      preview.src = url;
+      preview.style.display = "block";
+    });
+  }
+
+  document.addEventListener("click", function (e) {
+  const dd = document.getElementById("profileDropdown");
+  const trigger = document.querySelector(".profile-trigger");
+  if (!dd || !trigger) return;
+
+  if (!dd.contains(e.target) && !trigger.contains(e.target)) {
+    dd.classList.remove("open");
+  }
+});

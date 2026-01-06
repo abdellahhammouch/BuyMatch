@@ -84,15 +84,15 @@ class Auth
         $_SESSION["role"]    = $user["role_user"];
 
         if ($role === "acheteur") {
-            return ["success" => true, "redirect" => "/../pages/home.php"];
+            return ["success" => true, "redirect" => "/../pages/acheteur_dashboard.php"];
         }
 
         if ($role === "organisateur") {
-            return ["success" => true, "redirect" => "/../organizer/create_match.php"];
+            return ["success" => true, "redirect" => "/../organizer/organisateur_dashboard.php"];
         }
 
         if ($role === "admin") {
-            return ["success" => true, "redirect" => "/../Admin/dashboard.php"];
+            return ["success" => true, "redirect" => "/../admin/dashboard.php"];
         }
 
         return ["success" => true, "redirect" => "/../login.php"];

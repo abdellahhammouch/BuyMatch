@@ -5,6 +5,15 @@ error_reporting(E_ALL);
 
 session_start();
 
+require_once __DIR__ . "/../config/database.php";
+require_once __DIR__ . "/../classes/Auth.php";
+require_once __DIR__ . "/../classes/Session.php";
+
+$success = $_SESSION["success"] ?? null;
+$error   = $_SESSION["error"] ?? null;
+$errors  = $_SESSION["errors"] ?? [];
+
+unset($_SESSION["success"], $_SESSION["error"], $_SESSION["errors"]);
 ?>
 
 <!doctype html>
@@ -21,7 +30,7 @@ session_start();
 <header class="topbar">
   <div class="container">
     <div class="nav">
-      <a class="brand" href="home.php"><i class="fa-solid fa-ticket"></i><span>BuyMatch</span></a>
+      <a class="brand" href="../index.php"><i class="fa-solid fa-ticket"></i><span>BuyMatch</span></a>
       <div class="nav-actions">
         <a class="btn btn-ghost" href="register.php"><i class="fa-solid fa-user-plus"></i> Inscription</a>
       </div>
@@ -37,6 +46,29 @@ session_start();
         <p>Formulaire statique</p>
       </div>
     </div>
+    
+    <?php if ($success): ?>
+      <div class="success-message">
+        <i class="fas fa-check-circle"></i> <?= htmlspecialchars($success) ?>
+      </div>
+    <?php endif; ?>
+
+    <?php if ($error): ?>
+      <div class="error-message">
+        <i class="fas fa-exclamation-triangle"></i> <?= htmlspecialchars($error) ?>
+      </div>
+    <?php endif; ?>
+
+    <?php if (!empty($errors)): ?>
+      <div class="error-message">
+        <i class="fas fa-exclamation-triangle"></i>
+        <ul>
+          <?php foreach ($errors as $e): ?>
+            <li><?= htmlspecialchars($e) ?></li>
+          <?php endforeach; ?>
+        </ul>
+      </div>
+    <?php endif; ?>
 
     <form action="login_handling.php" method="POST" style="max-width:520px; margin:0 auto;">
       <div class="form-group">
