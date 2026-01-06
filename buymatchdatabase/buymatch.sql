@@ -45,6 +45,7 @@ CREATE TABLE tickets (
     place_numero INT NOT NULL,
     prix_ticket DECIMAL(10,2) NOT NULL,
     code_ticket VARCHAR(80) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (acheteur_id) REFERENCES users(id_user),
     FOREIGN KEY (match_id) REFERENCES matchs(id_match),
     FOREIGN KEY (categorie_id) REFERENCES categories(id_categorie),
@@ -87,3 +88,6 @@ END $$
 
 DELIMITER ;
 
+
+INSERT INTO users(nom_user, prenom_user, email_user, phone_user, password_user, role_user)
+VALUES ("Hammouch", "Abdellah", "hammouchabdellah4529@gmail.com", "0645291000", "abha11228899", "admin");

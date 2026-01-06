@@ -154,3 +154,127 @@ const input = document.getElementById("photoInput");
     dd.classList.remove("open");
   }
 });
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll("[data-open-modal]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-open-modal");
+      const modal = document.getElementById(id);
+      if (modal) modal.style.display = "block";
+    });
+  });
+
+  document.querySelectorAll("[data-close-modal]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-close-modal");
+      const modal = document.getElementById(id);
+      if (modal) modal.style.display = "none";
+    });
+  });
+});
+
+
+function adminShowSection(name) {
+  const sections = ["demandesSection", "usersSection", "statsSection"];
+
+  sections.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
+  });
+
+  const target = document.getElementById(name + "Section");
+  if (target) target.style.display = "block";
+
+  const links = document.querySelectorAll(".sidebar-link");
+  links.forEach((a) => a.classList.remove("active"));
+
+  links.forEach((a) => {
+    const onclick = a.getAttribute("onclick") || "";
+    if (onclick.includes("adminShowSection('" + name + "')")) {
+      a.classList.add("active");
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (document.getElementById("demandesSection")) {
+    adminShowSection("demandes");
+  }
+});
+
+// Tabs admin: Demandes / Utilisateurs / Stats
+document.addEventListener("DOMContentLoaded", () => {
+  const links = document.querySelectorAll(".sidebar-link");
+  const sections = {
+    demandes: document.getElementById("demandesSection"),
+    users: document.getElementById("usersSection"),
+    stats: document.getElementById("statsSection"),
+  };
+
+  function showSection(name) {
+    Object.keys(sections).forEach((k) => {
+      if (sections[k]) sections[k].style.display = "none";
+    });
+    if (sections[name]) sections[name].style.display = "block";
+
+    links.forEach((a) => a.classList.remove("active"));
+    links.forEach((a) => {
+      if (a.dataset.section === name) a.classList.add("active");
+    });
+  }
+
+  links.forEach((a) => {
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      showSection(a.dataset.section);
+    });
+  });
+
+  // default
+  showSection("demandes");
+});
+
+// Stats organisateur: show/hide (détails)
+function showOrgStats(orgId) {
+  const empty = document.getElementById("orgStatsEmpty");
+  if (empty) empty.style.display = "none";
+
+  const all = document.querySelectorAll(".org-stats-card");
+  all.forEach((el) => (el.style.display = "none"));
+
+  const target = document.getElementById("orgStats" + orgId);
+  if (target) target.style.display = "block";
+}
+
+
+// OPEN / CLOSE MODAL (BuyMatch)
+document.addEventListener("click", function (e) {
+  // Ouvrir
+  const openBtn = e.target.closest("[data-open-modal]");
+  if (openBtn) {
+    const id = openBtn.getAttribute("data-open-modal");
+    const modal = document.getElementById(id);
+    if (modal) modal.style.display = "block";
+    return;
+  }
+
+  // Fermer
+  const closeBtn = e.target.closest("[data-close-modal]");
+  if (closeBtn) {
+    const id = closeBtn.getAttribute("data-close-modal");
+    const modal = document.getElementById(id);
+    if (modal) modal.style.display = "none";
+    return;
+  }
+});
+
+// Fermer avec la touche ESC
+document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape") {
+    document.querySelectorAll(".bm-modal").forEach(function (m) {
+      m.style.display = "none";
+    });
+  }
+});
+

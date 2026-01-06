@@ -265,14 +265,58 @@ function badgeText($statut) {
             <?php endif; ?>
 
             <div class="match-actions">
-              <a class="btn btn-ghost" href="match_details.php?id=<?= (int)$m["id_match"] ?>">
-                <i class="fa-solid fa-eye"></i> Détails
-              </a>
-              <a class="btn btn-primary" href="edit_match.php?id=<?= (int)$m["id_match"] ?>">
-                <i class="fa-solid fa-pen"></i> Modifier
-              </a>
+              <button type="button" class="btn btn-ghost" data-open-modal="matchModal-<?= $m['id_match'] ?>">
+                <i class="fa-solid fa-circle-info"></i> Détails
+              </button>
             </div>
           </div>
+          <div class="bm-modal" id="matchModal-<?= $m['id_match'] ?>" style="display:none;">
+          <div class="bm-modal-backdrop" data-close-modal="matchModal-<?= $m['id_match'] ?>"></div>
+
+          <div class="bm-modal-card" role="dialog" aria-modal="true">
+            <div class="bm-modal-head">
+              <div style="font-weight:900;">
+                <i class="fa-solid fa-circle-info"></i> Détails du match
+              </div>
+
+              <button type="button" class="bm-modal-close" data-close-modal="matchModal-<?= $m['id_match'] ?>">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <div class="bm-modal-body">
+              <h3 style="margin:0 0 10px;">
+                <?= $m["equipe1_nom"] ?> vs <?= $m["equipe2_nom"] ?>
+              </h3>
+
+              <div class="meta" style="margin-bottom:12px;">
+                <span><i class="fa-solid fa-calendar-day"></i> <?= $m["date_match"] ?></span>
+                <span><i class="fa-solid fa-clock"></i> <?= substr($m["heure_match"], 0, 5) ?></span>
+                <span><i class="fa-solid fa-location-dot"></i> <?= $m["lieu_match"] ?></span>
+              </div>
+
+              <div class="card" style="padding:12px; background:rgba(255,255,255,.03);">
+                <strong>Statut</strong>
+                <p style="margin:8px 0 0; color:var(--muted);"><?= $m["statut_match"] ?></p>
+              </div>
+
+              <div class="card" style="margin-top:12px; padding:12px; background:rgba(255,255,255,.03);">
+                <strong>Billets & Chiffre d'affaires</strong>
+                <div class="meta" style="margin-top:8px;">
+                  <span><i class="fa-solid fa-ticket"></i> Billets vendus: <?= $m["billets_vendus"] ?? 0 ?></span>
+                  <span><i class="fa-solid fa-coins"></i> CA: <?= $m["chiffre_affaires"] ?? 0 ?> DH</span>
+                </div>
+              </div>
+
+              <div style="margin-top:12px;">
+                <button type="button" class="btn btn-ghost" data-close-modal="matchModal-<?= $m['id_match'] ?>">
+                  <i class="fa-solid fa-xmark"></i> Fermer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
 
         <?php endforeach; ?>
       <?php endif; ?>

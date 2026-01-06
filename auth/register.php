@@ -41,7 +41,7 @@ session_start();
       <div class="error-message">
         <ul>
           <?php foreach ($_SESSION["errors"] as $err): ?>
-            <li><?= htmlspecialchars($err) ?></li>
+            <li><?= $err ?></li>
           <?php endforeach; ?>
         </ul>
       </div>
@@ -50,7 +50,7 @@ session_start();
 
     <?php if (!empty($_SESSION["success"])): ?>
       <div class="success-message">
-        <?= htmlspecialchars($_SESSION["success"]); ?>
+        <?= $_SESSION["success"]; ?>
       </div>
       <?php unset($_SESSION["success"]); ?>
     <?php endif; ?>
