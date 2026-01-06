@@ -77,53 +77,43 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 /*
   DATA: Demandes matchs (en_attente)
 */
-$stmtDemandes = $pdo->query("
-    SELECT m.id_match, m.equipe1_nom, m.equipe2_nom, m.date_match, m.heure_match, m.lieu_match, m.statut_match,
-           u.id_user AS org_id, u.nom_user, u.prenom_user, u.email_user
-    FROM matchs m
-    JOIN users u ON u.id_user = m.organisateur_id
-    WHERE m.statut_match = 'en_attente'
-    ORDER BY m.date_match ASC, m.heure_match ASC
-");
+$stmtDemandes = $pdo->query("SELECT m.id_match, m.equipe1_nom, m.equipe2_nom, m.date_match, m.heure_match, m.lieu_match, m.statut_match,
+                                  u.id_user AS org_id, u.nom_user, u.prenom_user, u.email_user
+                            FROM matchs m
+                            JOIN users u ON u.id_user = m.organisateur_id
+                            WHERE m.statut_match = 'en_attente'
+                            ORDER BY m.date_match ASC, m.heure_match ASC");
 $demandes = $stmtDemandes->fetchAll();
 
 /*
   DATA: Users (sans admin)
 */
-$stmtUsers = $pdo->query("
-    SELECT id_user, nom_user, prenom_user, email_user, phone_user, role_user, is_active
-    FROM users
-    WHERE role_user <> 'admin'
-    ORDER BY role_user ASC, id_user DESC
-");
+$stmtUsers = $pdo->query("SELECT id_user, nom_user, prenom_user, email_user, phone_user, role_user, is_active
+                          FROM users
+                          WHERE role_user <> 'admin'
+                          ORDER BY role_user ASC, id_user DESC");
 $users = $stmtUsers->fetchAll();
 
 /*
   DATA: Organisateurs + Acheteurs séparés
 */
-$stmtOrgs = $pdo->query("
-    SELECT id_user, nom_user, prenom_user, email_user, is_active
-    FROM users
-    WHERE role_user = 'organisateur'
-    ORDER BY id_user DESC
-");
+$stmtOrgs = $pdo->query("SELECT id_user, nom_user, prenom_user, email_user, is_active
+                        FROM users
+                        WHERE role_user = 'organisateur'
+                        ORDER BY id_user DESC");
 $organisateurs = $stmtOrgs->fetchAll();
 
-$stmtAcheteurs = $pdo->query("
-    SELECT id_user, nom_user, prenom_user, email_user, is_active
-    FROM users
-    WHERE role_user = 'acheteur'
-    ORDER BY id_user DESC
-");
+$stmtAcheteurs = $pdo->query("SELECT id_user, nom_user, prenom_user, email_user, is_active
+                              FROM users
+                              WHERE role_user = 'acheteur'
+                              ORDER BY id_user DESC");
 $acheteurs = $stmtAcheteurs->fetchAll();
 
 /*
   STATS GLOBALES
 */
-$stmtGlobal = $pdo->query("
-    SELECT COUNT(*) AS billets_vendus, COALESCE(SUM(prix_ticket), 0) AS chiffre_affaires
-    FROM tickets
-");
+$stmtGlobal = $pdo->query("SELECT COUNT(*) AS billets_vendus, COALESCE(SUM(prix_ticket), 0) AS chiffre_affaires FROM tickets");
+
 $global = $stmtGlobal->fetch();
 $globalBillets = $global["billets_vendus"] ?? 0;
 $globalCA      = $global["chiffre_affaires"] ?? 0;
@@ -131,22 +121,17 @@ $globalCA      = $global["chiffre_affaires"] ?? 0;
 $todayBillets = null;
 $todayCA = null;
 if ($hasTicketCreatedAt) {
-    $stmtToday = $pdo->query("
-        SELECT COUNT(*) AS billets_vendus, COALESCE(SUM(prix_ticket), 0) AS chiffre_affaires
-        FROM tickets
-        WHERE DATE(created_at) = CURDATE()
-    ");
+    $stmtToday = $pdo->query("SELECT COUNT(*) AS billets_vendus, COALESCE(SUM(prix_ticket), 0) AS chiffre_affaires
+                              FROM tickets
+                              WHERE DATE(created_at) = CURDATE()");
     $t = $stmtToday->fetch();
     $todayBillets = $t["billets_vendus"] ?? 0;
     $todayCA      = $t["chiffre_affaires"] ?? 0;
 }
 
-$stmtCounts = $pdo->query("
-    SELECT
-      SUM(CASE WHEN role_user='organisateur' THEN 1 ELSE 0 END) AS nb_organisateurs,
-      SUM(CASE WHEN role_user='acheteur' THEN 1 ELSE 0 END) AS nb_acheteurs
-    FROM users
-");
+$stmtCounts = $pdo->query("SELECT SUM(CASE WHEN role_user='organisateur' THEN 1 ELSE 0 END) AS nb_organisateurs,
+                              SUM(CASE WHEN role_user='acheteur' THEN 1 ELSE 0 END) AS nb_acheteurs
+                            FROM users");
 $counts = $stmtCounts->fetch();
 $nbOrgs = $counts["nb_organisateurs"] ?? 0;
 $nbAch  = $counts["nb_acheteurs"] ?? 0;
@@ -157,23 +142,20 @@ $nbAch  = $counts["nb_acheteurs"] ?? 0;
 */
 $orgStats = [];
 
-$stmtOrgStats = $pdo->query("
-    SELECT
-      u.id_user AS org_id,
-      COUNT(DISTINCT m.id_match) AS total_matchs,
-      SUM(CASE WHEN m.statut_match='publie' THEN 1 ELSE 0 END) AS matchs_publies,
-      SUM(CASE WHEN m.statut_match='en_attente' THEN 1 ELSE 0 END) AS matchs_en_attente,
-      SUM(CASE WHEN m.statut_match='refuse' THEN 1 ELSE 0 END) AS matchs_refuses,
-      COUNT(t.id_ticket) AS billets_vendus,
-      COALESCE(SUM(t.prix_ticket), 0) AS chiffre_affaires,
-      ROUND(AVG(c.note), 2) AS note_moyenne
-    FROM users u
-    LEFT JOIN matchs m ON m.organisateur_id = u.id_user
-    LEFT JOIN tickets t ON t.match_id = m.id_match
-    LEFT JOIN comments c ON c.match_id = m.id_match
-    WHERE u.role_user = 'organisateur'
-    GROUP BY u.id_user
-");
+$stmtOrgStats = $pdo->query("SELECT u.id_user AS org_id,
+                              COUNT(DISTINCT m.id_match) AS total_matchs,
+                              SUM(CASE WHEN m.statut_match='publie' THEN 1 ELSE 0 END) AS matchs_publies,
+                              SUM(CASE WHEN m.statut_match='en_attente' THEN 1 ELSE 0 END) AS matchs_en_attente,
+                              SUM(CASE WHEN m.statut_match='refuse' THEN 1 ELSE 0 END) AS matchs_refuses,
+                              COUNT(t.id_ticket) AS billets_vendus,
+                              COALESCE(SUM(t.prix_ticket), 0) AS chiffre_affaires,
+                              ROUND(AVG(c.note), 2) AS note_moyenne
+                            FROM users u
+                            LEFT JOIN matchs m ON m.organisateur_id = u.id_user
+                            LEFT JOIN tickets t ON t.match_id = m.id_match
+                            LEFT JOIN comments c ON c.match_id = m.id_match
+                            WHERE u.role_user = 'organisateur'
+                            GROUP BY u.id_user");
 $tmp = $stmtOrgStats->fetchAll();
 foreach ($tmp as $row) {
     $orgStats[(int)$row["org_id"]] = $row;
@@ -182,17 +164,15 @@ foreach ($tmp as $row) {
 /*
   TOP 5 matchs (global)
 */
-$stmtTop = $pdo->query("
-    SELECT m.id_match, m.equipe1_nom, m.equipe2_nom,
-           COUNT(t.id_ticket) AS billets_vendus,
-           COALESCE(SUM(t.prix_ticket), 0) AS chiffre_affaires
-    FROM matchs m
-    LEFT JOIN tickets t ON t.match_id = m.id_match
-    WHERE m.statut_match='publie'
-    GROUP BY m.id_match
-    ORDER BY chiffre_affaires DESC
-    LIMIT 5
-");
+$stmtTop = $pdo->query("SELECT m.id_match, m.equipe1_nom, m.equipe2_nom,
+                              COUNT(t.id_ticket) AS billets_vendus,
+                              COALESCE(SUM(t.prix_ticket), 0) AS chiffre_affaires
+                        FROM matchs m
+                        LEFT JOIN tickets t ON t.match_id = m.id_match
+                        WHERE m.statut_match='publie'
+                        GROUP BY m.id_match
+                        ORDER BY chiffre_affaires DESC
+                        LIMIT 5");
 $topMatchs = $stmtTop->fetchAll();
 ?>
 <!doctype html>
