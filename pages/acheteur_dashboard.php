@@ -44,12 +44,15 @@ $stmtLieux = $pdo->query("SELECT DISTINCT lieu_match
                           ORDER BY lieu_match ASC");
 $lieux = $stmtLieux->fetchAll();
 
-$sql = "SELECT  m.id_match,m.equipe1_nom, m.equipe2_nom,
-                m.date_match, m.heure_match,m.lieu_match,
+$sql = "SELECT  m.id_match, m.equipe1_nom, m.equipe2_nom,
+                m.equipe1_logo, m.equipe2_logo,
+                m.date_match, m.heure_match, m.lieu_match,
+                m.total_places,
                 MIN(c.prix_categorie) AS min_prix
         FROM matchs m
         LEFT JOIN categories c ON c.match_id = m.id_match
         WHERE m.statut_match = 'publie'";
+
 
 $params = [];
 
@@ -73,6 +76,82 @@ $sql .= " GROUP BY m.id_match
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $matchs = $stmt->fetchAll();
+
+/* ---------- catégories + tickets vendus (pour les modals) ---------- */
+$catsByMatch = [];
+$soldTotalByMatch = [];
+$soldByMatchCat = [];
+
+$matchIds = [];
+foreach ($matchs as $m) {
+    $matchIds[] = (int)$m["id_match"];
+}
+
+if (count($matchIds) > 0) {
+    $placeholders = implode(",", array_fill(0, count($matchIds), "?"));
+
+    // 1) Catégories de tous les matchs affichés
+    $stmtCats = $pdo->prepare("SELECT id_categorie, match_id, nom_categorie, prix_categorie, places_max
+                              FROM categories
+                              WHERE match_id IN ($placeholders)
+                              ORDER BY prix_categorie ASC");
+    $stmtCats->execute($matchIds);
+    $allCats = $stmtCats->fetchAll();
+
+    foreach ($allCats as $c) {
+        $mid = (int)$c["match_id"];
+        if (!isset($catsByMatch[$mid])) $catsByMatch[$mid] = [];
+        $catsByMatch[$mid][] = $c;
+    }
+
+    // 2) Total billets vendus par match
+    $stmtSoldTotal = $pdo->prepare("SELECT match_id, COUNT(*) AS sold_total
+                                    FROM tickets
+                                    WHERE match_id IN ($placeholders)
+                                    GROUP BY match_id");
+    $stmtSoldTotal->execute($matchIds);
+    foreach ($stmtSoldTotal->fetchAll() as $r) {
+        $soldTotalByMatch[(int)$r["match_id"]] = (int)$r["sold_total"];
+    }
+
+    // 3) Billets vendus par catégorie (par match)
+    $stmtSoldCat = $pdo->prepare("SELECT match_id, categorie_id, COUNT(*) AS sold
+                                  FROM tickets
+                                  WHERE match_id IN ($placeholders)
+                                  GROUP BY match_id, categorie_id");
+    $stmtSoldCat->execute($matchIds);
+    foreach ($stmtSoldCat->fetchAll() as $r) {
+        $mId = (int)$r["match_id"];
+        $cId = (int)$r["categorie_id"];
+        if (!isset($soldByMatchCat[$mId])) $soldByMatchCat[$mId] = [];
+        $soldByMatchCat[$mId][$cId] = (int)$r["sold"];
+    }
+    /* ---------- Historique achats (tickets acheteur) ---------- */
+    $history = [];
+
+    if ($isLogged && $role === "acheteur") {
+        $stmtHist = $pdo->prepare("SELECT m.id_match,
+                m.equipe1_nom, m.equipe2_nom,
+                m.date_match, m.heure_match, m.lieu_match,
+                c.nom_categorie,
+                COUNT(*) AS qty,
+                GROUP_CONCAT(t.place_numero ORDER BY t.place_numero SEPARATOR ', ') AS seats,
+                SUM(t.prix_ticket) AS total_paid,
+                MAX(t.id_ticket) AS last_ticket_id
+            FROM tickets t
+            JOIN matchs m ON m.id_match = t.match_id
+            JOIN categories c ON c.id_categorie = t.categorie_id
+            WHERE t.acheteur_id = ?
+            GROUP BY m.id_match, c.id_categorie
+            ORDER BY last_ticket_id DESC
+            LIMIT 50
+        ");
+        $stmtHist->execute([$_SESSION["user_id"]]);
+        $history = $stmtHist->fetchAll();
+    }
+
+}
+
 ?>
 <!doctype html>
 <html lang="fr">
@@ -94,7 +173,13 @@ $matchs = $stmt->fetchAll();
       </a>
 
       <div class="navlinks">
-        <a href="acheteur_dashboard.php" class="active"><i class="fa-solid fa-futbol"></i> Matchs</a>
+        <a href="#" class="active" data-tab-link="matchs">
+          <i class="fa-solid fa-futbol"></i> Matchs
+        </a>
+
+        <a href="#" data-tab-link="history">
+          <i class="fa-solid fa-receipt"></i> Historique d’achats
+        </a>
       </div>
 
       <div class="nav-actions" style="display:flex; align-items:center; gap:10px;">
@@ -109,7 +194,7 @@ $matchs = $stmt->fetchAll();
           <!-- Photo => profile -->
           <a href="profile.php" class="iconbtn" title="Mon Profil" style="padding:0; overflow:hidden;">
             <?php if (!empty($me["photo_user"])): ?>
-              <img src="<?= $me["photo_user"] ?>" alt="Profil" style="width:42px;height:42px;object-fit:cover;border-radius:12px;">
+              <img src="../<?= $me["photo_user"] ?>" alt="Profil" style="width:42px;height:42px;object-fit:cover;border-radius:12px;">
             <?php else: ?>
               <i class="fa-solid fa-user" style="font-size:14px; color:rgba(255,255,255,.8)"></i>
             <?php endif; ?>
@@ -126,7 +211,7 @@ $matchs = $stmt->fetchAll();
 
 <section class="section">
   <div class="container">
-
+    <div id="tab-matchs">
     <div class="section-head">
       <div>
         <h2>Matchs disponibles</h2>
@@ -187,12 +272,35 @@ $matchs = $stmt->fetchAll();
       <?php else: ?>
         <?php foreach ($matchs as $m): ?>
           <?php $mid = (int)$m["id_match"]; ?>
+          <?php $soldTotal = $soldTotalByMatch[$mid] ?? 0;
+                $remainingTotal = (int)$m["total_places"] - (int)$soldTotal;
+                if ($remainingTotal < 0) $remainingTotal = 0;
+                $catList = $catsByMatch[$mid] ?? [];
+          ?>
 
           <div class="card">
             <div class="card-top">
-              <p class="card-title">
-                <?= $m["equipe1_nom"] ?> vs <?= $m["equipe2_nom"] ?>
-              </p>
+              <div class="card-title" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <?php if (!empty($m["equipe1_logo"])): ?>
+                    <img src="../<?= $m["equipe1_logo"] ?>" alt="Logo 1" style="width:28px;height:28px;object-fit:cover;border-radius:8px;">
+                  <?php else: ?>
+                    <i class="fa-solid fa-shield" style="opacity:.6"></i>
+                  <?php endif; ?>
+                  <span style="font-weight:900;"><?= $m["equipe1_nom"] ?></span>
+                </div>
+
+                <span style="opacity:.7; font-weight:900;">vs</span>
+
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <?php if (!empty($m["equipe2_logo"])): ?>
+                    <img src="../<?= $m["equipe2_logo"] ?>" alt="Logo 2" style="width:28px;height:28px;object-fit:cover;border-radius:8px;">
+                  <?php else: ?>
+                    <i class="fa-solid fa-shield" style="opacity:.6"></i>
+                  <?php endif; ?>
+                  <span style="font-weight:900;"><?= $m["equipe2_nom"] ?></span>
+                </div>
+              </div>
               <span class="badge">
                 <i class="fa-solid fa-tag"></i>
                 <?= ($m["min_prix"] !== null ? $m["min_prix"]." DH" : "—") ?>
@@ -238,22 +346,104 @@ $matchs = $stmt->fetchAll();
               </div>
 
               <div class="bm-modal-body">
-                <h3 style="margin:0 0 10px;">
-                  <?= $m["equipe1_nom"] ?> vs <?= $m["equipe2_nom"] ?>
-                </h3>
 
-                <div class="meta" style="margin-bottom:12px;">
-                  <span><i class="fa-solid fa-calendar"></i> <?= $m["date_match"] ?></span>
-                  <span><i class="fa-solid fa-clock"></i> <?= substr($m["heure_match"], 0, 5) ?></span>
-                  <span><i class="fa-solid fa-location-dot"></i> <?= $m["lieu_match"] ?></span>
+                <div style="text-align:center; margin-bottom:16px;">
+
+                  <!-- Logos + Names -->
+                  <div style="display:flex; align-items:center; justify-content:center; gap:18px; flex-wrap:wrap;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                      <?php if (!empty($m["equipe1_logo"])): ?>
+                        <img src="../<?= $m["equipe1_logo"] ?>" alt="Logo 1"
+                            style="width:62px;height:62px;object-fit:cover;border-radius:16px;">
+                      <?php else: ?>
+                        <div style="width:62px;height:62px;border-radius:16px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;">
+                          <i class="fa-solid fa-shield" style="opacity:.7;font-size:22px;"></i>
+                        </div>
+                      <?php endif; ?>
+
+                      <div style="font-weight:900; font-size:22px; line-height:1.1;">
+                        <?= $m["equipe1_nom"] ?>
+                      </div>
+                    </div>
+
+                    <div class="badge" style="font-weight:900; padding:10px 14px;">
+                      VS
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:12px;">
+                      <?php if (!empty($m["equipe2_logo"])): ?>
+                        <img src="../<?= $m["equipe2_logo"] ?>" alt="Logo 2"
+                            style="width:62px;height:62px;object-fit:cover;border-radius:16px;">
+                      <?php else: ?>
+                        <div style="width:62px;height:62px;border-radius:16px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;">
+                          <i class="fa-solid fa-shield" style="opacity:.7;font-size:22px;"></i>
+                        </div>
+                      <?php endif; ?>
+
+                      <div style="font-weight:900; font-size:22px; line-height:1.1;">
+                        <?= $m["equipe2_nom"] ?>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Infos match centered -->
+                  <div class="meta" style="justify-content:center; margin-top:10px;">
+                    <span><i class="fa-solid fa-calendar"></i> <?= $m["date_match"] ?></span>
+                    <span><i class="fa-solid fa-clock"></i> <?= substr($m["heure_match"], 0, 5) ?></span>
+                    <span><i class="fa-solid fa-location-dot"></i> <?= $m["lieu_match"] ?></span>
+                  </div>
                 </div>
 
-                <div class="card" style="padding:12px; background:rgba(255,255,255,.03);">
-                  <div style="font-weight:800; margin-bottom:8px;">Prix minimum</div>
-                  <div class="badge">
-                    <i class="fa-solid fa-tag"></i>
-                    <?= ($m["min_prix"] !== null ? $m["min_prix"]." DH" : "Non défini") ?>
+                <!-- Résumé global -->
+                <div class="card" style="padding:12px; background:rgba(255,255,255,.03); margin-bottom:12px;">
+                  <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <span class="badge"><i class="fa-solid fa-users"></i> Total: <?= (int)$m["total_places"] ?></span>
+                    <span class="badge"><i class="fa-solid fa-ticket"></i> Vendus: <?= (int)$soldTotal ?></span>
+                    <span class="badge"><i class="fa-solid fa-chair"></i> Restants: <?= (int)$remainingTotal ?></span>
+                    <span class="badge"><i class="fa-solid fa-tag"></i> Prix min: <?= ($m["min_prix"] !== null ? $m["min_prix"]." DH" : "—") ?></span>
                   </div>
+                </div>
+
+                <!-- Catégories -->
+                <div class="card" style="padding:12px; background:rgba(255,255,255,.03);">
+                  <div style="font-weight:900; margin-bottom:10px;">
+                    <i class="fa-solid fa-tags"></i> Catégories disponibles
+                  </div>
+
+                  <?php if (count($catList) === 0): ?>
+                    <div style="color:var(--muted);">Aucune catégorie pour ce match.</div>
+                  <?php else: ?>
+
+                    <div style="display:grid; gap:10px;">
+                      <?php foreach ($catList as $c): ?>
+                        <?php
+                          $cid = (int)$c["id_categorie"];
+                          $soldCat = $soldByMatchCat[$mid][$cid] ?? 0;
+                          $remainingCat = (int)$c["places_max"] - (int)$soldCat;
+                          if ($remainingCat < 0) $remainingCat = 0;
+                        ?>
+
+                        <div style="border:1px solid var(--line); border-radius:12px; padding:10px;">
+                          <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
+                            <div>
+                              <div style="font-weight:900;"><?= $c["nom_categorie"] ?></div>
+                              <div style="color:var(--muted); font-size:13px; margin-top:4px;">
+                                Prix: <?= $c["prix_categorie"] ?> DH
+                              </div>
+                            </div>
+
+                            <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+                              <span class="badge"><i class="fa-solid fa-layer-group"></i> Total: <?= (int)$c["places_max"] ?></span>
+                              <span class="badge"><i class="fa-solid fa-ticket"></i> Vendus: <?= (int)$soldCat ?></span>
+                              <span class="badge"><i class="fa-solid fa-chair"></i> Restants: <?= (int)$remainingCat ?></span>
+                            </div>
+                          </div>
+                        </div>
+
+                      <?php endforeach; ?>
+                    </div>
+
+                  <?php endif; ?>
                 </div>
 
                 <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
@@ -279,8 +469,73 @@ $matchs = $stmt->fetchAll();
 
         <?php endforeach; ?>
 
-      <?php endif; ?>
+      <?php endif; ?>  
     </div>
+    </div>
+    <div id="tab-history" style="display:none;">
+
+  <div class="section-head">
+    <div>
+      <h2>Historique d’achats</h2>
+      <p>Vos billets achetés (par match et catégorie)</p>
+    </div>
+  </div>
+
+  <?php if (!$isLogged): ?>
+    <div class="card" style="color:var(--muted);">
+      Vous devez vous connecter pour voir votre historique.
+      <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+        <a class="btn btn-ghost" href="../auth/login.php">
+          <i class="fa-solid fa-right-to-bracket"></i> Connexion
+        </a>
+        <a class="btn btn-primary" href="../auth/register.php">
+          <i class="fa-solid fa-user-plus"></i> Inscription
+        </a>
+      </div>
+    </div>
+
+  <?php else: ?>
+
+    <?php if (count($history) === 0): ?>
+      <div class="card" style="color:var(--muted);">
+        Aucun achat pour le moment.
+      </div>
+    <?php else: ?>
+
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th>Match</th>
+              <th>Date</th>
+              <th>Lieu</th>
+              <th>Catégorie</th>
+              <th>Qté</th>
+              <th>Places</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($history as $h): ?>
+              <tr>
+                <td><strong><?= $h["equipe1_nom"] ?> vs <?= $h["equipe2_nom"] ?></strong></td>
+                <td><?= $h["date_match"] ?> <?= substr($h["heure_match"],0,5) ?></td>
+                <td><?= $h["lieu_match"] ?></td>
+                <td><?= $h["nom_categorie"] ?></td>
+                <td><?= (int)$h["qty"] ?></td>
+                <td><?= $h["seats"] ?></td>
+                <td><strong><?= $h["total_paid"] ?> DH</strong></td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+
+    <?php endif; ?>
+
+  <?php endif; ?>
+
+</div>
 
   </div>
 </section>
