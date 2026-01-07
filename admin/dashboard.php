@@ -72,6 +72,38 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         header("Location: dashboard.php");
         exit;
     }
+    if (isset($_POST["action"]) && $_POST["action"] === "delete_comment") {
+
+        $commentId = (int)($_POST["comment_id"] ?? 0);
+
+        if ($commentId <= 0) {
+            $_SESSION["error"] = "Commentaire invalide.";
+            header("Location: dashboard.php");
+            exit;
+        }
+
+        // Vérifier que le commentaire appartient à un match publié
+        $stmtCheck = $pdo->prepare("SELECT c.id_comment
+                                    FROM comments c
+                                    JOIN matchs m ON m.id_match = c.match_id
+                                    WHERE c.id_comment = ? AND m.statut_match = 'publie'
+                                    LIMIT 1");
+        $stmtCheck->execute([$commentId]);
+        $ok = $stmtCheck->fetch();
+
+        if (!$ok) {
+            $_SESSION["error"] = "Suppression impossible. (Match non publié ou commentaire introuvable)";
+            header("Location: dashboard.php");
+            exit;
+        }
+
+        $stmtDel = $pdo->prepare("DELETE FROM comments WHERE id_comment = ? LIMIT 1");
+        $stmtDel->execute([$commentId]);
+
+        $_SESSION["success"] = "Commentaire supprimé.";
+        header("Location: dashboard.php");
+        exit;
+    }
 }
 
 /*
@@ -108,6 +140,21 @@ $stmtAcheteurs = $pdo->query("SELECT id_user, nom_user, prenom_user, email_user,
                               WHERE role_user = 'acheteur'
                               ORDER BY id_user DESC");
 $acheteurs = $stmtAcheteurs->fetchAll();
+
+/*
+  DATA: Commentaires (matchs publiés)
+*/
+$stmtAdminComments = $pdo->query("SELECT c.id_comment, c.note, c.contenu, c.created_at,
+                                        u.prenom_user, u.nom_user,
+                                        m.id_match, m.equipe1_nom, m.equipe2_nom, m.lieu_match
+                                  FROM comments c
+                                  JOIN matchs m ON m.id_match = c.match_id
+                                  JOIN users u ON u.id_user = c.user_id
+                                  WHERE m.statut_match = 'publie'
+                                  ORDER BY c.created_at DESC
+                                  LIMIT 30");
+$adminComments = $stmtAdminComments->fetchAll();
+
 
 /*
   STATS GLOBALES
@@ -391,6 +438,61 @@ $topMatchs = $stmtTop->fetchAll();
           </tbody>
         </table>
       </div>
+      <!-- Commentaires (matchs publiés) -->
+      <div class="card" style="margin-top:14px;">
+        <div class="card-top">
+          <div class="card-title">Commentaires (matchs publiés)</div>
+          <div class="badge"><i class="fa-solid fa-comments"></i><?= count($adminComments) ?></div>
+        </div>
+
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Match</th>
+              <th>Auteur</th>
+              <th>Note</th>
+              <th>Commentaire</th>
+              <th>Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php if (count($adminComments) === 0): ?>
+              <tr><td colspan="6" style="color:var(--muted);">Aucun commentaire sur les matchs publiés.</td></tr>
+            <?php else: ?>
+              <?php foreach ($adminComments as $c): ?>
+                <tr>
+                  <td>
+                    <strong><?= $c["equipe1_nom"] ?> vs <?= $c["equipe2_nom"] ?></strong>
+                    <div style="color:var(--muted); font-size:13px; margin-top:4px;">
+                      <?= $c["lieu_match"] ?>
+                    </div>
+                  </td>
+                  <td><?= $c["prenom_user"] ?> <?= $c["nom_user"] ?></td>
+                  <td><?= ($c["note"] !== null ? $c["note"] : "-") ?></td>
+                  <td style="max-width:420px;">
+                    <div style="color:var(--muted); line-height:1.5;">
+                      <?= $c["contenu"] ?>
+                    </div>
+                  </td>
+                  <td><?= $c["created_at"] ?></td>
+                  <td>
+                    <form method="POST" style="display:inline;">
+                      <input type="hidden" name="action" value="delete_comment">
+                      <input type="hidden" name="comment_id" value="<?= (int)$c["id_comment"] ?>">
+                      <button class="btn btn-danger" type="submit"
+                              onclick="return confirm('Supprimer ce commentaire ?');">
+                        <i class="fa-solid fa-trash"></i> Supprimer
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            <?php endif; ?>
+          </tbody>
+        </table>
+      </div>
+
 
       <!-- Liste Organisateurs (clic -> détails) -->
       <div class="grid" style="grid-template-columns: 1fr 1fr; gap:14px;">
