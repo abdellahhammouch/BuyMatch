@@ -45,7 +45,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["add_comment"])) {
 
     // Vérifier que l'acheteur a au moins 1 ticket dans ce match
     if (empty($localErrors)) {
-        $stmtCheck = $pdo->prepare("SELECT COUNT(*) FROM tickets WHERE acheteur_id = ? AND match_id = ?");
+        $stmtCheck = $pdo->prepare("SELECT COUNT(*) FROM tickets 
+                                    WHERE acheteur_id = ? AND match_id = ?");
         $stmtCheck->execute([$_SESSION["user_id"], $matchIdPost]);
         $hasTicket = (int)$stmtCheck->fetchColumn();
 
@@ -131,6 +132,44 @@ $matchIds = [];
 foreach ($matchs as $m) {
     $matchIds[] = (int)$m["id_match"];
 }
+
+/* ---------- Peut commenter ? (acheteur + ticket) ---------- */
+$canComment = [];
+$commentsByMatch = [];
+
+if ($isLogged && $role === "acheteur" && count($matchIds) > 0) {
+    $placeholders = implode(",", array_fill(0, count($matchIds), "?"));
+
+    // Matches où l'acheteur a des tickets
+    $paramsTickets = $matchIds;
+    array_unshift($paramsTickets, $_SESSION["user_id"]);
+
+    $stmtMyTickets = $pdo->prepare("SELECT match_id, COUNT(*) AS qty
+                                    FROM tickets
+                                    WHERE acheteur_id = ? AND match_id IN ($placeholders)
+                                    GROUP BY match_id");
+    $stmtMyTickets->execute($paramsTickets);
+
+    foreach ($stmtMyTickets->fetchAll() as $r) {
+        $canComment[(int)$r["match_id"]] = true;
+    }
+
+    // Charger commentaires des matchs affichés
+    $stmtCom = $pdo->prepare("SELECT c.id_comment, c.match_id, c.note, c.contenu, c.created_at,
+                                    u.nom_user, u.prenom_user
+                              FROM comments c
+                              JOIN users u ON u.id_user = c.user_id
+                              WHERE c.match_id IN ($placeholders)
+                              ORDER BY c.created_at DESC");
+    $stmtCom->execute($matchIds);
+
+    foreach ($stmtCom->fetchAll() as $cm) {
+        $mid = (int)$cm["match_id"];
+        if (!isset($commentsByMatch[$mid])) $commentsByMatch[$mid] = [];
+        $commentsByMatch[$mid][] = $cm;
+    }
+}
+
 
 if (count($matchIds) > 0) {
     $placeholders = implode(",", array_fill(0, count($matchIds), "?"));
@@ -490,6 +529,87 @@ if (count($matchIds) > 0) {
 
                   <?php endif; ?>
                 </div>
+
+                <!-- Commentaires -->
+                <div class="card" style="padding:12px; background:rgba(255,255,255,.03); margin-top:12px;">
+                  <div style="font-weight:900; margin-bottom:10px;">
+                    <i class="fa-solid fa-comments"></i> Commentaires
+                  </div>
+
+                  <?php
+                    $comList = $commentsByMatch[$mid] ?? [];
+                  ?>
+
+                  <?php if (count($comList) === 0): ?>
+                    <div style="color:var(--muted);">Aucun commentaire pour le moment.</div>
+                  <?php else: ?>
+                    <div style="display:grid; gap:10px;">
+                      <?php foreach ($comList as $cm): ?>
+                        <div style="border:1px solid var(--line); border-radius:12px; padding:10px;">
+                          <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                            <div style="font-weight:900;">
+                              <?= $cm["prenom_user"] ?> <?= $cm["nom_user"] ?>
+                            </div>
+                            <div style="color:var(--muted); font-size:13px;">
+                              <?= $cm["created_at"] ?>
+                            </div>
+                          </div>
+
+                          <div style="margin-top:6px; display:flex; gap:8px; align-items:center;">
+                            <span class="badge"><i class="fa-solid fa-star"></i> <?= (int)$cm["note"] ?>/5</span>
+                          </div>
+
+                          <div style="margin-top:8px; color:var(--muted); line-height:1.6;">
+                            <?= $cm["contenu"] ?>
+                          </div>
+                        </div>
+                      <?php endforeach; ?>
+                    </div>
+                  <?php endif; ?>
+
+                  <?php if ($isLogged && $role === "acheteur" && !empty($canComment[$mid])): ?>
+                    <div style="margin-top:12px; border-top:1px solid var(--line); padding-top:12px;">
+                      <div style="font-weight:900; margin-bottom:8px;">
+                        Ajouter un commentaire
+                      </div>
+
+                      <form method="POST" action="acheteur_dashboard.php">
+                        <input type="hidden" name="add_comment" value="1">
+                        <input type="hidden" name="match_id" value="<?= $mid ?>">
+
+                        <div class="form-row">
+                          <div class="field">
+                            <label>Note (1 à 5)</label>
+                            <select class="select" name="note" required>
+                              <option value="5">5</option>
+                              <option value="4">4</option>
+                              <option value="3">3</option>
+                              <option value="2">2</option>
+                              <option value="1">1</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div class="field" style="margin-top:10px;">
+                          <label>Commentaire</label>
+                          <textarea class="input" name="contenu" rows="3" placeholder="Écrivez votre avis..." required></textarea>
+                        </div>
+
+                        <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+                          <button class="btn btn-primary" type="submit">
+                            <i class="fa-solid fa-paper-plane"></i> Envoyer
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+
+                  <?php elseif ($isLogged && $role === "acheteur"): ?>
+                    <div style="margin-top:12px; color:var(--muted); font-size:13px;">
+                      Vous pouvez commenter seulement si vous avez acheté au moins 1 ticket pour ce match.
+                    </div>
+                  <?php endif; ?>
+                </div>
+
 
                 <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
                   <?php if ($isLogged && ($role === "acheteur")): ?>

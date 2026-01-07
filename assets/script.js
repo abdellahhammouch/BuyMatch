@@ -303,3 +303,14 @@ document.addEventListener("click", function (e) {
   document.querySelectorAll("[data-tab-link]").forEach(a => a.classList.remove("active"));
   link.classList.add("active");
 });
+
+document.addEventListener("DOMContentLoaded", function () {
+  const params = new URLSearchParams(window.location.search);
+  const openId = params.get("open"); // match id
+
+  if (openId) {
+    const modal = document.getElementById("matchModal-" + openId);
+    if (modal) modal.style.display = "block";
+  }
+});
+

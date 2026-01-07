@@ -1461,3 +1461,52 @@ form{
 .bm-modal-close:hover{
   background: rgba(255,255,255,.07);
 }
+
+/* ===== BuyMatch Modal Scroll Fix ===== */
+
+/* the overlay (keep it fixed on screen) */
+.bm-modal{
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+
+/* dark background */
+.bm-modal-backdrop{
+  position: absolute;
+  inset: 0;
+}
+
+/* the modal box */
+.bm-modal-card{
+  position: relative;
+  max-height: 85vh;
+  overflow: hidden;          
+  display: flex;             
+  flex-direction: column;    
+}
+
+/* header stays visible */
+.bm-modal-head{
+  flex: 0 0 auto;
+}
+
+/* body becomes scrollable */
+.bm-modal-body{
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding-bottom: 14px;
+}
+
+/* optional: nicer scrollbar (works in Chrome/Edge) */
+.bm-modal-body::-webkit-scrollbar{
+  width: 10px;
+}
+.bm-modal-body::-webkit-scrollbar-thumb{
+  border-radius: 999px;
+  background: rgba(255,255,255,.18);
+}
+.bm-modal-body::-webkit-scrollbar-track{
+  background: rgba(255,255,255,.06);
+}
+
