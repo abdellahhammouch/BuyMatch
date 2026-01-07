@@ -25,6 +25,51 @@ unset($_SESSION["success"], $_SESSION["error"], $_SESSION["errors"]);
 
 $pdo = Database::getInstance();
 
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["add_comment"])) {
+
+    if (!$isLogged || $role !== "acheteur") {
+        $_SESSION["error"] = "Vous devez être connecté en tant qu'acheteur.";
+        header("Location: acheteur_dashboard.php");
+        exit;
+    }
+
+    $matchIdPost = (int)($_POST["match_id"] ?? 0);
+    $contenu = trim($_POST["contenu"] ?? "");
+    $note = (int)($_POST["note"] ?? 0);
+
+    $localErrors = [];
+
+    if ($matchIdPost <= 0) $localErrors[] = "Match invalide.";
+    if ($contenu === "") $localErrors[] = "Commentaire obligatoire.";
+    if ($note < 1 || $note > 5) $localErrors[] = "Note invalide (1 à 5).";
+
+    // Vérifier que l'acheteur a au moins 1 ticket dans ce match
+    if (empty($localErrors)) {
+        $stmtCheck = $pdo->prepare("SELECT COUNT(*) FROM tickets WHERE acheteur_id = ? AND match_id = ?");
+        $stmtCheck->execute([$_SESSION["user_id"], $matchIdPost]);
+        $hasTicket = (int)$stmtCheck->fetchColumn();
+
+        if ($hasTicket <= 0) {
+            $localErrors[] = "Vous ne pouvez commenter que les matchs où vous avez un ticket.";
+        }
+    }
+
+    if (!empty($localErrors)) {
+        $_SESSION["errors"] = $localErrors;
+        header("Location: acheteur_dashboard.php?open=" . $matchIdPost);
+        exit;
+    }
+
+    // Insert comment
+    $stmtIns = $pdo->prepare("INSERT INTO comments (match_id, user_id, note, contenu) VALUES (?, ?, ?, ?)");
+    $stmtIns->execute([$matchIdPost, $_SESSION["user_id"], $note, $contenu]);
+
+    $_SESSION["success"] = "Commentaire ajouté.";
+    header("Location: acheteur_dashboard.php?open=" . $matchIdPost);
+    exit;
+}
+
+
 $me = null;
 if ($isLogged) {
     $stmtMe = $pdo->prepare("SELECT id_user, nom_user, prenom_user, email_user, photo_user, role_user
