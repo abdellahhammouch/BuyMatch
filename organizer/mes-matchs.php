@@ -15,6 +15,39 @@ if (!isset($_SESSION["user_id"]) || ($_SESSION["role"] ?? "") !== "organisateur"
 $pdo = Database::getInstance();
 $orgId = (int) $_SESSION["user_id"];
 
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["delete_comment"])) {
+
+    $commentId = (int)($_POST["comment_id"] ?? 0);
+
+    if ($commentId <= 0) {
+        $_SESSION["error"] = "Commentaire invalide.";
+        header("Location: mes-matchs.php");
+        exit;
+    }
+
+    $stmtCheck = $pdo->prepare("SELECT c.id_comment
+                                FROM comments c
+                                JOIN matchs m ON m.id_match = c.match_id
+                                WHERE c.id_comment = ? AND m.organisateur_id = ?
+                                LIMIT 1");
+    $stmtCheck->execute([$commentId, $orgId]);
+    $ok = $stmtCheck->fetch();
+
+    if (!$ok) {
+        $_SESSION["error"] = "Vous ne pouvez pas supprimer ce commentaire.";
+        header("Location: mes-matchs.php");
+        exit;
+    }
+
+    $stmtDel = $pdo->prepare("DELETE FROM comments WHERE id_comment = ? LIMIT 1");
+    $stmtDel->execute([$commentId]);
+
+    $_SESSION["success"] = "Commentaire supprimé.";
+    header("Location: mes-matchs.php");
+    exit;
+}
+
+
 $stmt = $pdo->prepare("SELECT id_user, nom_user, prenom_user, email_user, phone_user, photo_user
                        FROM users
                        WHERE id_user = ? AND role_user = 'organisateur'
@@ -213,6 +246,16 @@ function badgeText($statut) {
                                       ORDER BY id_categorie ASC");
             $stmtCat->execute([(int)$m["id_match"]]);
             $cats = $stmtCat->fetchAll();
+            $stmtCom = $pdo->prepare("SELECT  c.id_comment, c.note, c.contenu, c.created_at,
+                                              u.nom_user, u.prenom_user
+                                      FROM comments c
+                                      JOIN users u ON u.id_user = c.user_id
+                                      WHERE c.match_id = ?
+                                      ORDER BY c.created_at DESC
+                                      LIMIT 10");
+            $stmtCom->execute([(int)$m["id_match"]]);
+            $comList = $stmtCom->fetchAll();
+
           ?>
 
           <div class="match-card">
@@ -294,6 +337,44 @@ function badgeText($statut) {
                 <button type="button" class="btn btn-ghost" data-close-modal="matchModal-<?= $m['id_match'] ?>">
                   <i class="fa-solid fa-xmark"></i> Fermer
                 </button>
+              </div>
+              <div class="card" style="margin-top:12px; padding:12px; background:rgba(255,255,255,.03);">
+                <strong><i class="fa-solid fa-comments"></i> Commentaires</strong>
+
+                <?php if (!$comList || count($comList) === 0): ?>
+                  <div style="margin-top:10px; color:var(--muted);">Aucun commentaire pour ce match.</div>
+                <?php else: ?>
+                  <div style="margin-top:10px; display:grid; gap:10px;">
+                    <?php foreach ($comList as $c): ?>
+                      <div style="border:1px solid var(--line); border-radius:12px; padding:10px;">
+                        <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
+                          <div>
+                            <div style="font-weight:900;">
+                              <?= $c["prenom_user"] ?> <?= $c["nom_user"] ?>
+                              <?php if (!empty($c["note"])): ?>
+                                <span class="badge" style="margin-left:8px;"><i class="fa-solid fa-star"></i> <?= $c["note"] ?></span>
+                              <?php endif; ?>
+                            </div>
+                            <div style="color:var(--muted); font-size:13px; margin-top:4px;">
+                              <i class="fa-solid fa-clock"></i> <?= $c["created_at"] ?>
+                            </div>
+                            <div style="margin-top:8px; color:var(--muted); line-height:1.6;">
+                              <?= $c["contenu"] ?>
+                            </div>
+                          </div>
+
+                          <form method="POST" action="mes-matchs.php">
+                            <input type="hidden" name="comment_id" value="<?= (int)$c["id_comment"] ?>">
+                            <button class="btn btn-danger btn-sm" type="submit" name="delete_comment" value="1"
+                                    onclick="return confirm('Supprimer ce commentaire ?');">
+                              <i class="fa-solid fa-trash"></i>
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+                    <?php endforeach; ?>
+                  </div>
+                <?php endif; ?>
               </div>
             </div>
           </div>

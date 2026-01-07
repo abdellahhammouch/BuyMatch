@@ -15,6 +15,42 @@ require_once __DIR__ . "/../config/database.php";
 $pdo = Database::getInstance();
 $organisateurId = $_SESSION["user_id"];
 
+/* ===== Supprimer un commentaire (organisateur -> فقط على match ديالو) ===== */
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["delete_comment"])) {
+
+    $commentId = (int)($_POST["comment_id"] ?? 0);
+
+    if ($commentId <= 0) {
+        $_SESSION["error"] = "Commentaire invalide.";
+        header("Location: organisateur_dashboard.php");
+        exit;
+    }
+
+    // vérifier que le commentaire appartient à un match de cet organisateur
+    $stmtCheck = $pdo->prepare("SELECT c.id_comment
+                                FROM comments c
+                                JOIN matchs m ON m.id_match = c.match_id
+                                WHERE c.id_comment = ? AND m.organisateur_id = ?
+                                LIMIT 1");
+    $stmtCheck->execute([$commentId, $organisateurId]);
+    $ok = $stmtCheck->fetch();
+
+    if (!$ok) {
+        $_SESSION["error"] = "Vous ne pouvez pas supprimer ce commentaire.";
+        header("Location: organisateur_dashboard.php");
+        exit;
+    }
+
+    // supprimer
+    $stmtDel = $pdo->prepare("DELETE FROM comments WHERE id_comment = ? LIMIT 1");
+    $stmtDel->execute([$commentId]);
+
+    $_SESSION["success"] = "Commentaire supprimé.";
+    header("Location: organisateur_dashboard.php");
+    exit;
+}
+
+
 $success = $_SESSION["success"] ?? null;
 $error   = $_SESSION["error"] ?? null;
 $errors  = $_SESSION["errors"] ?? [];
@@ -160,19 +196,19 @@ function statutLabel($statut) {
     <div class="section-head">
       <div>
         <h2>Dashboard Organisateur</h2>
-        <p>Bienvenue, <?= htmlspecialchars($org["prenom_user"] . " " . $org["nom_user"]) ?></p>
+        <p>Bienvenue, <?= $org["prenom_user"] . " " . $org["nom_user"] ?></p>
       </div>
     </div>
 
     <?php if ($success): ?>
       <div class="success-message" style="margin-bottom:14px;">
-        <i class="fa-solid fa-circle-check"></i> <?= htmlspecialchars($success) ?>
+        <i class="fa-solid fa-circle-check"></i> <?= $success ?>
       </div>
     <?php endif; ?>
 
     <?php if ($error): ?>
       <div class="error-message" style="margin-bottom:14px;">
-        <i class="fa-solid fa-triangle-exclamation"></i> <?= htmlspecialchars($error) ?>
+        <i class="fa-solid fa-triangle-exclamation"></i> <?= $error ?>
       </div>
     <?php endif; ?>
 
@@ -181,7 +217,7 @@ function statutLabel($statut) {
         <i class="fa-solid fa-triangle-exclamation"></i>
         <ul style="margin:8px 0 0 18px;">
           <?php foreach ($errors as $e): ?>
-            <li><?= htmlspecialchars($e) ?></li>
+            <li><?= $e ?></li>
           <?php endforeach; ?>
         </ul>
       </div>
@@ -192,17 +228,17 @@ function statutLabel($statut) {
         <div style="display:flex; gap:14px; align-items:center;">
             <div style="width:64px; height:64px; border-radius:50%; overflow:hidden; border:1px solid var(--line); background:rgba(255,255,255,.04); display:flex; align-items:center; justify-content:center;">
             <?php if (!empty($org["photo_user"])): ?>
-                <img src="../<?= htmlspecialchars($org["photo_user"]) ?>" alt="Photo" style="width:100%; height:100%; object-fit:cover;">
+                <img src="../<?= $org["photo_user"] ?>" alt="Photo" style="width:100%; height:100%; object-fit:cover;">
             <?php else: ?>
                 <i class="fa-solid fa-user" style="font-size:24px; color:rgba(255,255,255,.6)"></i>
             <?php endif; ?>
             </div>
 
             <div>
-            <div style="font-weight:900; font-size:18px;"><?= htmlspecialchars($org["prenom_user"] . " " . $org["nom_user"]) ?></div>
+            <div style="font-weight:900; font-size:18px;"><?= $org["prenom_user"] . " " . $org["nom_user"] ?></div>
             <div class="meta" style="margin-top:6px;">
-                <span><i class="fa-solid fa-envelope"></i> <?= htmlspecialchars($org["email_user"]) ?></span>
-                <span><i class="fa-solid fa-phone"></i> <?= htmlspecialchars($org["phone_user"] ?? "-") ?></span>
+                <span><i class="fa-solid fa-envelope"></i> <?= $org["email_user"] ?></span>
+                <span><i class="fa-solid fa-phone"></i> <?= $org["phone_user"] ?? "-" ?></span>
             </div>
             </div>
         </div>
@@ -241,12 +277,12 @@ function statutLabel($statut) {
                 <?php else: ?>
                 <?php foreach ($matchs as $m): ?>
                     <tr>
-                    <td><strong><?= htmlspecialchars($m["equipe1_nom"] . " vs " . $m["equipe2_nom"]) ?></strong></td>
-                    <td><?= htmlspecialchars($m["date_match"]) ?> <?= htmlspecialchars(substr($m["heure_match"], 0, 5)) ?></td>
-                    <td><?= htmlspecialchars($m["lieu_match"]) ?></td>
-                    <td><?= htmlspecialchars(statutLabel($m["statut_match"])) ?></td>
-                    <td><?= htmlspecialchars($m["billets_vendus"]) ?></td>
-                    <td><?= htmlspecialchars($m["chiffre_affaires"]) ?> DH</td>
+                    <td><strong><?= $m["equipe1_nom"] . " vs " . $m["equipe2_nom"] ?></strong></td>
+                    <td><?= $m["date_match"] ?> <?= substr($m["heure_match"], 0, 5) ?></td>
+                    <td><?= $m["lieu_match"] ?></td>
+                    <td><?= statutLabel($m["statut_match"]) ?></td>
+                    <td><?= $m["billets_vendus"] ?></td>
+                    <td><?= $m["chiffre_affaires"] ?> DH</td>
                     </tr>
                 <?php endforeach; ?>
                 <?php endif; ?>
@@ -267,16 +303,23 @@ function statutLabel($statut) {
             <?php foreach ($comments as $c): ?>
             <div class="card">
                 <div class="card-top">
-                <div class="card-title"><?= htmlspecialchars($c["equipe1_nom"] . " vs " . $c["equipe2_nom"]) ?></div>
-                <div class="badge"><i class="fa-solid fa-star"></i><?= htmlspecialchars($c["note"] ?? "-") ?></div>
+                <div class="card-title"><?= $c["equipe1_nom"] . " vs " . $c["equipe2_nom"] ?></div>
+                <div class="badge"><i class="fa-solid fa-star"></i><?= $c["note"] ?? "-" ?></div>
                 </div>
                 <div class="meta" style="margin-bottom:10px;">
-                <span><i class="fa-solid fa-user"></i> <?= htmlspecialchars($c["prenom_user"] . " " . $c["nom_user"]) ?></span>
-                <span><i class="fa-solid fa-clock"></i> <?= htmlspecialchars($c["created_at"]) ?></span>
+                <span><i class="fa-solid fa-user"></i> <?= $c["prenom_user"] . " " . $c["nom_user"] ?></span>
+                <span><i class="fa-solid fa-clock"></i> <?= $c["created_at"] ?></span>
                 </div>
                 <div style="color:var(--muted); line-height:1.6;">
-                <?= htmlspecialchars($c["contenu"]) ?>
+                <?= $c["contenu"] ?>
                 </div>
+                <form method="POST" action="organisateur_dashboard.php" style="margin-top:12px; display:flex; justify-content:flex-end;">
+                    <input type="hidden" name="comment_id" value="<?= (int)$c["id_comment"] ?>">
+                    <button class="btn btn-danger btn-sm" type="submit" name="delete_comment" value="1"
+                            onclick="return confirm('Supprimer ce commentaire ?');">
+                        <i class="fa-solid fa-trash"></i> Supprimer
+                    </button>
+                </form>
             </div>
             <?php endforeach; ?>
         <?php endif; ?>
