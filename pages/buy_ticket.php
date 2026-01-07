@@ -233,8 +233,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       <div class="nav-actions" style="display:flex; align-items:center; gap:10px;">
         <a href="profile.php" class="iconbtn" title="Mon Profil" style="padding:0; overflow:hidden;">
           <?php if (!empty($me["photo_user"])): ?>
-            <img src="<?= $me["photo_user"] ?>" alt="Profil" style="width:42px;height:42px;object-fit:cover;border-radius:12px;">
+            <img src="../<?= $me["photo_user"] ?>" alt="Profil" style="width:42px;height:42px;object-fit:cover;border-radius:12px;">
           <?php else: ?>
+            <i class="fa-solid fa-user" style="font-size:14px; color:rgba(255,255,255,.8)"></i>
             <i class="fa-solid fa-user" style="font-size:14px; color:rgba(255,255,255,.8)"></i>
           <?php endif; ?>
         </a>
