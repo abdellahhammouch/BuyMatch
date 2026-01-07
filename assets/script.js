@@ -278,3 +278,28 @@ document.addEventListener("keydown", function (e) {
   }
 });
 
+document.addEventListener("click", function (e) {
+  const link = e.target.closest("[data-tab-link]");
+  if (!link) return;
+
+  e.preventDefault();
+  const tab = link.getAttribute("data-tab-link");
+
+  const tabMatchs = document.getElementById("tab-matchs");
+  const tabHistory = document.getElementById("tab-history");
+
+  if (!tabMatchs || !tabHistory) return;
+
+  // show/hide
+  if (tab === "history") {
+    tabMatchs.style.display = "none";
+    tabHistory.style.display = "block";
+  } else {
+    tabMatchs.style.display = "block";
+    tabHistory.style.display = "none";
+  }
+
+  // active class in navbar
+  document.querySelectorAll("[data-tab-link]").forEach(a => a.classList.remove("active"));
+  link.classList.add("active");
+});

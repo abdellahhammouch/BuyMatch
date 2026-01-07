@@ -189,7 +189,7 @@ $topMatchs = $stmtTop->fetchAll();
 <header class="topbar">
   <div class="container">
     <div class="nav">
-      <a class="brand" href="../index.php"><i class="fa-solid fa-ticket"></i><span>BuyMatch</span></a>
+      <a class="brand" href="dashboard.php"><i class="fa-solid fa-ticket"></i><span>BuyMatch</span></a>
 
       <div class="navlinks">
         <a href="#" class="sidebar-link active" data-section="demandes"><i class="fa-solid fa-inbox"></i> Demandes</a>
