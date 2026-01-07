@@ -156,6 +156,24 @@ $stmtAdminComments = $pdo->query("SELECT c.id_comment, c.note, c.contenu, c.crea
 $adminComments = $stmtAdminComments->fetchAll();
 
 
+$stmtAllMatches = $pdo->query("SELECT id_match, equipe1_nom, equipe2_nom, date_match, lieu_match
+                              FROM matchs
+                              ORDER BY date_match DESC
+                              LIMIT 50");
+$allMatches = $stmtAllMatches->fetchAll();
+
+$matchDetailsSales = null;
+$selectedMatchId = (int)($_GET["match_sales_id"] ?? 0);
+
+if ($selectedMatchId > 0) {
+    $stmtProc = $pdo->prepare("CALL sp_total_ventes_match(?)");
+    $stmtProc->execute([$selectedMatchId]);
+    $matchDetailsSales = $stmtProc->fetch();
+    $stmtProc->closeCursor(); // important après CALL
+}
+
+
+
 /*
   STATS GLOBALES
 */
@@ -211,13 +229,8 @@ foreach ($tmp as $row) {
 /*
   TOP 5 matchs (global)
 */
-$stmtTop = $pdo->query("SELECT m.id_match, m.equipe1_nom, m.equipe2_nom,
-                              COUNT(t.id_ticket) AS billets_vendus,
-                              COALESCE(SUM(t.prix_ticket), 0) AS chiffre_affaires
-                        FROM matchs m
-                        LEFT JOIN tickets t ON t.match_id = m.id_match
-                        WHERE m.statut_match='publie'
-                        GROUP BY m.id_match
+$stmtTop = $pdo->query("SELECT id_match, equipe1_nom, equipe2_nom, billets_vendus, chiffre_affaires
+                        FROM v_match_sales
                         ORDER BY chiffre_affaires DESC
                         LIMIT 5");
 $topMatchs = $stmtTop->fetchAll();
@@ -407,6 +420,34 @@ $topMatchs = $stmtTop->fetchAll();
           <div class="label">Top matchs</div>
           <div class="value"><i class="fa-solid fa-trophy"></i><?= count($topMatchs) ?></div>
         </div>
+      </div>
+      <div class="card" style="margin-top:14px;">
+        <div class="card-top">
+          <div class="card-title">Ventes d’un match (procédure)</div>
+        </div>
+
+        <form method="GET" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+          <input type="hidden" name="section" value="stats">
+          <select class="select" name="match_sales_id" required>
+            <option value="">Choisir un match...</option>
+            <?php foreach ($allMatches as $mm): ?>
+              <option value="<?= (int)$mm["id_match"] ?>" <?= ($selectedMatchId === (int)$mm["id_match"] ? "selected" : "") ?>>
+                #<?= (int)$mm["id_match"] ?> — <?= $mm["equipe1_nom"] ?> vs <?= $mm["equipe2_nom"] ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+
+          <button class="btn btn-primary" type="submit">
+            Voir les ventes
+          </button>
+        </form>
+
+        <?php if ($matchDetailsSales): ?>
+          <div class="meta" style="margin-top:12px;">
+            <span><i class="fa-solid fa-ticket"></i> Billets vendus: <strong><?= $matchDetailsSales["billets_vendus"] ?></strong></span>
+            <span><i class="fa-solid fa-coins"></i> CA: <strong><?= $matchDetailsSales["chiffre_affaires"] ?> DH</strong></span>
+          </div>
+        <?php endif; ?>
       </div>
 
       <!-- Top 5 matchs -->

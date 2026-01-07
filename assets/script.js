@@ -314,3 +314,33 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 
+document.addEventListener("DOMContentLoaded", function () {
+  // switch sections admin
+  const links = document.querySelectorAll(".sidebar-link");
+  const demandes = document.getElementById("demandesSection");
+  const users = document.getElementById("usersSection");
+  const stats = document.getElementById("statsSection");
+
+  function show(section) {
+    if (demandes) demandes.style.display = (section === "demandes") ? "" : "none";
+    if (users) users.style.display = (section === "users") ? "" : "none";
+    if (stats) stats.style.display = (section === "stats") ? "" : "none";
+
+    links.forEach(l => l.classList.remove("active"));
+    links.forEach(l => {
+      if (l.getAttribute("data-section") === section) l.classList.add("active");
+    });
+  }
+
+  links.forEach(link => {
+    link.addEventListener("click", function (e) {
+      e.preventDefault();
+      show(this.getAttribute("data-section"));
+    });
+  });
+
+  const params = new URLSearchParams(window.location.search);
+  const section = params.get("section") || "demandes";
+  show(section);
+});
+
