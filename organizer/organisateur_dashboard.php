@@ -11,6 +11,7 @@ if (!isset($_SESSION["user_id"]) || ($_SESSION["role"] ?? "") !== "organisateur"
 }
 
 require_once __DIR__ . "/../config/database.php";
+require_once __DIR__ . "/../classes/MatchSport.php";
 
 $pdo = Database::getInstance();
 $organisateurId = $_SESSION["user_id"];
@@ -86,25 +87,24 @@ $stmtRef = $pdo->prepare("SELECT COUNT(*) FROM matchs WHERE organisateur_id = ? 
 $stmtRef->execute([$organisateurId]);
 $refusedMatchs = $stmtRef->fetchColumn();
 
-$stmtSales = $pdo->prepare("SELECT  COUNT(t.id_ticket) AS billets_vendus,
-                                    COALESCE(SUM(t.prix_ticket), 0) AS chiffre_affaires
-                            FROM matchs m
-                            LEFT JOIN tickets t ON t.match_id = m.id_match
-                            WHERE m.organisateur_id = ?");
-$stmtSales->execute([$organisateurId]);
-$sales = $stmtSales->fetch();
+$ms = new MatchSport($pdo);
+
+$sales = $ms->getSalesByOrganizer($organisateurId);
 
 $billetsVendus = $sales["billets_vendus"] ?? 0;
 $chiffreAffaires = $sales["chiffre_affaires"] ?? 0;
 
-$stmtMatchs = $pdo->prepare("SELECT m.id_match, m.equipe1_nom, m.equipe2_nom, 
-                                    m.date_match, m.heure_match, m.lieu_match, m.statut_match,
-                                    COUNT(t.id_ticket) AS billets_vendus,
-                                    COALESCE(SUM(t.prix_ticket), 0) AS chiffre_affaires
+
+$billetsVendus = $sales["billets_vendus"] ?? 0;
+$chiffreAffaires = $sales["chiffre_affaires"] ?? 0;
+
+$stmtMatchs = $pdo->prepare("SELECT m.id_match, m.equipe1_nom, m.equipe2_nom,
+                                m.date_match, m.heure_match, m.lieu_match, m.statut_match,
+                                IFNULL(v.billets_vendus, 0) AS billets_vendus,
+                                IFNULL(v.chiffre_affaires, 0) AS chiffre_affaires
                             FROM matchs m
-                            LEFT JOIN tickets t ON t.match_id = m.id_match
+                            LEFT JOIN v_match_sales v ON v.id_match = m.id_match
                             WHERE m.organisateur_id = ?
-                            GROUP BY m.id_match
                             ORDER BY m.date_match DESC, m.heure_match DESC
                             LIMIT 10");
 $stmtMatchs->execute([$organisateurId]);
