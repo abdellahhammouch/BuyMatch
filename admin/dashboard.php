@@ -4,6 +4,9 @@ error_reporting(E_ALL);
 
 session_start();
 require_once __DIR__ . "/../config/database.php";
+require_once __DIR__ . "/../classes/MatchSport.php";
+
+$ms = new MatchSport($pdo);
 
 if (!isset($_SESSION["user_id"]) || ($_SESSION["role"] ?? "") !== "admin") {
     header("Location: ../auth/login.php");
@@ -177,9 +180,7 @@ if ($selectedMatchId > 0) {
 /*
   STATS GLOBALES
 */
-$stmtGlobal = $pdo->query("SELECT COUNT(*) AS billets_vendus, COALESCE(SUM(prix_ticket), 0) AS chiffre_affaires FROM tickets");
-
-$global = $stmtGlobal->fetch();
+$global = $ms->getGlobalSales();
 $globalBillets = $global["billets_vendus"] ?? 0;
 $globalCA      = $global["chiffre_affaires"] ?? 0;
 
@@ -229,11 +230,8 @@ foreach ($tmp as $row) {
 /*
   TOP 5 matchs (global)
 */
-$stmtTop = $pdo->query("SELECT id_match, equipe1_nom, equipe2_nom, billets_vendus, chiffre_affaires
-                        FROM v_match_sales
-                        ORDER BY chiffre_affaires DESC
-                        LIMIT 5");
-$topMatchs = $stmtTop->fetchAll();
+$topMatchs = $ms->getTopPublishedMatches(5);
+
 ?>
 <!doctype html>
 <html lang="fr">

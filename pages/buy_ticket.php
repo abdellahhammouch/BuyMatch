@@ -62,10 +62,14 @@ if (!$categories || count($categories) === 0) {
 }
 
 /* 6) Places restantes globales (match) */
-$stmtSoldTotal = $pdo->prepare("SELECT COUNT(*) FROM tickets WHERE match_id = ?");
-$stmtSoldTotal->execute([$matchId]);
-$soldTotal = (int)$stmtSoldTotal->fetchColumn();
+$stmtSale = $pdo->prepare("CALL sp_total_ventes_match(?)");
+$stmtSale->execute([$matchId]);
+$sale = $stmtSale->fetch();
+$stmtSale->closeCursor();
+
+$soldTotal = (int)($sale["billets_vendus"] ?? 0);
 $remainingTotal = (int)$match["total_places"] - $soldTotal;
+if ($remainingTotal < 0) $remainingTotal = 0;
 
 $success = $_SESSION["success"] ?? null;
 $error   = $_SESSION["error"] ?? null;

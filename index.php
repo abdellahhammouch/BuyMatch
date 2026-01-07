@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>BuyMatch | Accueil</title>
-  <link rel="stylesheet" href="../assets/style.css" />
+  <link rel="stylesheet" href="assets/style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
@@ -12,31 +12,31 @@
 <header class="topbar">
   <div class="container">
     <div class="nav">
-      <a class="brand" href="home.php">
+      <a class="brand" href="index.php">
         <i class="fa-solid fa-ticket"></i><span>BuyMatch</span>
       </a>
 
       <nav class="navlinks">
-        <a class="active" href="home.php"><i class="fa-solid fa-house"></i> Accueil</a>
-        <a href="matchs.php"><i class="fa-solid fa-calendar-days"></i> Matchs</a>
-        <a href="login.php"><i class="fa-solid fa-right-to-bracket"></i> Connexion</a>
-        <a href="register.php"><i class="fa-solid fa-user-plus"></i> Inscription</a>
+        <a class="active" href="index.php"><i class="fa-solid fa-house"></i> Accueil</a>
+        <a href="pages/acheteur_dashboard.php"><i class="fa-solid fa-calendar-days"></i> Matchs</a>
+        <a href="auth/login.php"><i class="fa-solid fa-right-to-bracket"></i> Connexion</a>
+        <a href="auth/register.php"><i class="fa-solid fa-user-plus"></i> Inscription</a>
       </nav>
 
       <div class="nav-actions">
         <button class="iconbtn mobile-toggle" onclick="toggleMobileMenu()" aria-label="Menu">
           <i class="fa-solid fa-bars"></i>
         </button>
-        <a class="btn btn-ghost" href="login.php"><i class="fa-solid fa-right-to-bracket"></i> Connexion</a>
-        <a class="btn btn-primary" href="register.php"><i class="fa-solid fa-user-plus"></i> Inscription</a>
+        <a class="btn btn-ghost" href="auth/login.php"><i class="fa-solid fa-right-to-bracket"></i> Connexion</a>
+        <a class="btn btn-primary" href="auth/register.php"><i class="fa-solid fa-user-plus"></i> Inscription</a>
       </div>
     </div>
 
     <div class="mobile-menu" id="mobileMenu">
-      <a href="home.php"><i class="fa-solid fa-house"></i> Accueil</a>
-      <a href="matchs.php"><i class="fa-solid fa-calendar-days"></i> Matchs</a>
-      <a href="login.php"><i class="fa-solid fa-right-to-bracket"></i> Connexion</a>
-      <a href="register.php"><i class="fa-solid fa-user-plus"></i> Inscription</a>
+      <a href="index.php"><i class="fa-solid fa-house"></i> Accueil</a>
+      <a href="pages/acheteur_dashboard.php"><i class="fa-solid fa-calendar-days"></i> Matchs</a>
+      <a href="auth/login.php"><i class="fa-solid fa-right-to-bracket"></i> Connexion</a>
+      <a href="auth/register.php"><i class="fa-solid fa-user-plus"></i> Inscription</a>
     </div>
   </div>
 </header>
@@ -52,8 +52,8 @@
           aux organisateurs de proposer des événements et à l’administrateur de valider la publication.
         </p>
         <div class="hero-actions">
-          <a class="btn btn-primary" href="matchs.php"><i class="fa-solid fa-magnifying-glass"></i> Voir les matchs</a>
-          <a class="btn btn-ghost" href="register.php"><i class="fa-solid fa-user-plus"></i> Créer un compte</a>
+          <a class="btn btn-primary" href="pages/acheteur_dashboard.php"><i class="fa-solid fa-magnifying-glass"></i> Voir les matchs</a>
+          <a class="btn btn-ghost" href="auth/register.php"><i class="fa-solid fa-user-plus"></i> Créer un compte</a>
         </div>
       </div>
 
@@ -155,13 +155,13 @@
   <div class="container" style="display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap;">
     <div>© 2026 BuyMatch</div>
     <div style="display:flex; gap:14px;">
-      <a href="matchs.php">Matchs</a>
-      <a href="login.php">Connexion</a>
-      <a href="register.php">Inscription</a>
+      <a href="pages/acheteur_dashboard.php">Matchs</a>
+      <a href="auth/login.php">Connexion</a>
+      <a href="auth/register.php">Inscription</a>
     </div>
   </div>
 </footer>
 
-<script src="../assets/script.js"></script>
+<script src="assets/script.js"></script>
 </body>
 </html>

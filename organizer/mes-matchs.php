@@ -254,6 +254,13 @@ function badgeText($statut) {
                                       LIMIT 10");
             $stmtCom->execute([(int)$m["id_match"]]);
             $comList = $stmtCom->fetchAll();
+            $stmtSale = $pdo->prepare("CALL sp_total_ventes_match(?)");
+            $stmtSale->execute([(int)$m["id_match"]]);
+            $saleOne = $stmtSale->fetch();
+            $stmtSale->closeCursor();
+
+            $billetsProc = (int)($saleOne["billets_vendus"] ?? 0);
+            $caProc = (int)($saleOne["chiffre_affaires"] ?? 0);
 
           ?>
 
@@ -327,8 +334,8 @@ function badgeText($statut) {
               <div class="card" style="margin-top:12px; padding:12px; background:rgba(255,255,255,.03);">
                 <strong>Billets & Chiffre d'affaires</strong>
                 <div class="meta" style="margin-top:8px;">
-                  <span><i class="fa-solid fa-ticket"></i> Billets vendus: <?= $m["billets_vendus"] ?? 0 ?></span>
-                  <span><i class="fa-solid fa-coins"></i> CA: <?= $m["chiffre_affaires"] ?? 0 ?> DH</span>
+                  <span><i class="fa-solid fa-ticket"></i> Billets vendus: <?= $billetsProc ?></span>
+                  <span><i class="fa-solid fa-coins"></i> CA: <?= $caProc ?> DH</span>
                 </div>
               </div>
 
