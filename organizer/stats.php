@@ -144,7 +144,7 @@ function statutBadgeClass($statut) {
 <header class="topbar">
   <div class="container">
     <div class="nav">
-      <a class="brand" href="../index.php">
+      <a class="brand" href="organisateur_dashboard.php">
         <i class="fa-solid fa-ticket"></i>
         <span>BuyMatch</span>
       </a>

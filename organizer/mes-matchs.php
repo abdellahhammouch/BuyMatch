@@ -109,7 +109,7 @@ function badgeText($statut) {
 <header class="topbar">
   <div class="container">
     <div class="nav">
-      <a class="brand" href="../index.php">
+      <a class="brand" href="organisateur_dashboard.php">
         <i class="fa-solid fa-ticket"></i>
         <span>BuyMatch</span>
       </a>
@@ -190,24 +190,6 @@ function badgeText($statut) {
       </div>
     </div>
 
-    <!-- Filtres -->
-    <form class="toolbar" method="GET" action="mes-matchs.php">
-      <div class="toolbar-search">
-        <i class="fa-solid fa-search"></i>
-        <input class="input" type="text" name="q" placeholder="Rechercher un match..." value="<?= $q ?>">
-      </div>
-
-      <select class="select" name="statut">
-        <option value="">Tous les statuts</option>
-        <option value="publie" <?= $statut==="publie" ? "selected" : "" ?>>Publiés</option>
-        <option value="en_attente" <?= $statut==="en_attente" ? "selected" : "" ?>>En attente</option>
-        <option value="refuse" <?= $statut==="refuse" ? "selected" : "" ?>>Refusés</option>
-      </select>
-
-      <button class="btn btn-ghost" type="submit">
-        <i class="fa-solid fa-filter"></i> Appliquer
-      </button>
-    </form>
 
     <!-- Liste -->
     <div class="cards-grid">

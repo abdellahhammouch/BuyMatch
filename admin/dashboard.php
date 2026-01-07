@@ -360,10 +360,6 @@ $topMatchs = $stmtTop->fetchAll();
           <div class="label">Top matchs</div>
           <div class="value"><i class="fa-solid fa-trophy"></i><?= count($topMatchs) ?></div>
         </div>
-        <div class="k">
-          <div class="label">created_at tickets</div>
-          <div class="value"><i class="fa-solid fa-database"></i><?= $hasTicketCreatedAt ? "OK" : "Non" ?></div>
-        </div>
       </div>
 
       <!-- Top 5 matchs -->
