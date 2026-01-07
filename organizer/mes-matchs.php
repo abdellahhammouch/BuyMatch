@@ -73,10 +73,11 @@ $userPhoto = $user ? $user["photo_user"] : "";
 $q = trim($_GET["q"] ?? "");
 $statut = trim($_GET["statut"] ?? "");
 
-$sql = "SELECT m.*,COUNT(t.id_ticket) AS billets_vendus,
-            COALESCE(SUM(t.prix_ticket), 0) AS chiffre_affaires
+$sql = "SELECT m.*,
+            IFNULL(v.billets_vendus, 0) AS billets_vendus,
+            IFNULL(v.chiffre_affaires, 0) AS chiffre_affaires
         FROM matchs m
-        LEFT JOIN tickets t ON t.match_id = m.id_match
+        LEFT JOIN v_match_sales v ON v.id_match = m.id_match
         WHERE m.organisateur_id = ?";
 
 $params = [$orgId];
@@ -97,8 +98,6 @@ if ($q !== "") {
     $params[] = "%".$q."%";
 }
 
-$sql .= " GROUP BY m.id_match
-          ORDER BY m.date_match DESC, m.heure_match DESC";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
