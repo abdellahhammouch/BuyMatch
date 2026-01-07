@@ -20,9 +20,6 @@ $errors = [];
 $success = $_SESSION["success"] ?? null;
 unset($_SESSION["success"]);
 
-function fileUrlFromPages(string $dbPath): string {
-    return "../" . ltrim($dbPath, "/");
-}
 
 $stmt = $pdo->prepare("SELECT id_user, nom_user, prenom_user, email_user, phone_user, photo_user, role_user
                        FROM users WHERE id_user = ? LIMIT 1");
@@ -192,7 +189,7 @@ if ($user["role_user"] === "acheteur")        $returnLink = "../pages/acheteur_d
     <div class="card" style="max-width:900px; margin: 0 auto;">
       <div style="display:flex; gap:16px; align-items:center; margin-bottom:14px;">
         <?php if (!empty($user["photo_user"])): ?>
-          <img src="<?= fileUrlFromPages($user["photo_user"]) ?>" alt="Photo" style="width:90px;height:90px;border-radius:999px;object-fit:cover;border:1px solid rgba(255,255,255,.12);">
+          <img src="../<?= $user["photo_user"] ?>" alt="Photo" style="width:90px;height:90px;border-radius:999px;object-fit:cover;border:1px solid rgba(255,255,255,.12);">
         <?php else: ?>
           <div style="width:90px;height:90px;border-radius:999px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);">
             <i class="fa-solid fa-user" style="font-size:30px;opacity:.7;"></i>
@@ -212,8 +209,8 @@ if ($user["role_user"] === "acheteur")        $returnLink = "../pages/acheteur_d
         <div class="kpi" style="margin: 14px 0;">
           <?php foreach($stats as $k => $v): ?>
             <div class="k">
-              <div class="label"><?= htmlspecialchars(strtoupper($k)) ?></div>
-              <div class="value"><?= htmlspecialchars((string)$v) ?></div>
+              <div class="label"><?= strtoupper($k) ?></div>
+              <div class="value"><?= (string)$v ?></div>
             </div>
           <?php endforeach; ?>
         </div>
@@ -226,22 +223,22 @@ if ($user["role_user"] === "acheteur")        $returnLink = "../pages/acheteur_d
           <div class="form-row">
             <div class="field">
               <label>Nom</label>
-              <input class="input" type="text" name="nom" value="<?= htmlspecialchars($user["nom_user"]) ?>" required>
+              <input class="input" type="text" name="nom" value="<?= $user["nom_user"] ?>" required>
             </div>
             <div class="field">
               <label>Prénom</label>
-              <input class="input" type="text" name="prenom" value="<?= htmlspecialchars($user["prenom_user"]) ?>" required>
+              <input class="input" type="text" name="prenom" value="<?= $user["prenom_user"] ?>" required>
             </div>
           </div>
 
           <div class="form-row" style="margin-top:12px;">
             <div class="field">
               <label>Email</label>
-              <input class="input" type="email" name="email" value="<?= htmlspecialchars($user["email_user"]) ?>" required>
+              <input class="input" type="email" name="email" value="<?= $user["email_user"] ?>" required>
             </div>
             <div class="field">
               <label>Téléphone</label>
-              <input class="input" type="text" name="phone" value="<?= htmlspecialchars($user["phone_user"] ?? "") ?>">
+              <input class="input" type="text" name="phone" value="<?= $user["phone_user"] ?? "" ?>">
             </div>
           </div>
 
