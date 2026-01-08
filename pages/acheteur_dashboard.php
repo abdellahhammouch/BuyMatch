@@ -314,6 +314,19 @@ if (count($matchIds) > 0) {
         <i class="fa-solid fa-triangle-exclamation"></i> <?= $error ?>
       </div>
     <?php endif; ?>
+    <?php if (!empty($_SESSION["last_pdf"])): ?>
+      <div class="card" style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+          <div>
+            <div style="font-weight:700;">Votre ticket PDF est prêt ✅</div>
+            <div style="color:var(--muted);font-size:13px;">Téléchargez-le ou vérifiez votre email.</div>
+          </div>
+          <a class="btn btn-primary" href="download_ticket.php">
+            <i class="fa-solid fa-file-pdf"></i> Télécharger PDF
+          </a>
+        </div>
+      </div>
+    <?php endif; ?>
 
     <?php if (!empty($errors)): ?>
       <div class="error-message" style="margin-bottom:14px;">

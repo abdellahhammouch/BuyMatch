@@ -77,14 +77,17 @@ DELIMITER $$
 
 CREATE PROCEDURE sp_total_ventes_match(IN p_match_id INT)
 BEGIN
-    SELECT m.id_match,m.equipe1_nom,m.equipe2_nom,
+    SELECT 
+        m.id_match,
+        m.equipe1_nom,
+        m.equipe2_nom,
         COUNT(t.id_ticket) AS billets_vendus,
         IFNULL(SUM(t.prix_ticket), 0) AS chiffre_affaires
     FROM matchs m
     LEFT JOIN tickets t ON t.match_id = m.id_match
     WHERE m.id_match = p_match_id
     GROUP BY m.id_match, m.equipe1_nom, m.equipe2_nom;
-END $$
+END$$
 
 DELIMITER ;
 
