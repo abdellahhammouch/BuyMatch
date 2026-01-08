@@ -6,6 +6,7 @@ error_reporting(E_ALL);
 session_start();
 require_once __DIR__ . "/../config/database.php";
 require_once __DIR__ . "/../classes/Category.php";
+require_once __DIR__ . "/../classes/Ticket.php";
 
 
 /* 1) Sécurité: seulement acheteur */
@@ -23,10 +24,11 @@ if (($_SESSION["role"] ?? "") !== "acheteur") {
 
 $pdo = Database::getInstance();
 $categoryRepo = new Category($pdo);
+$ticketService = new Ticket($pdo);
 
 
 /* 2) Infos user (photo + nom dans nav) */
-$stmtMe = $pdo->prepare("SELECT id_user, nom_user, prenom_user, photo_user FROM users WHERE id_user = ? LIMIT 1");
+$stmtMe = $pdo->prepare("SELECT id_user, nom_user, prenom_user, email_user, photo_user FROM users WHERE id_user = ? LIMIT 1");
 $stmtMe->execute([$_SESSION["user_id"]]);
 $me = $stmtMe->fetch();
 
@@ -88,6 +90,8 @@ if ($remainingForUser < 0) $remainingForUser = 0;
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $categorieId = (int)($_POST["categorie_id"] ?? 0);
     $qty = (int)($_POST["qty"] ?? 0);
+    $seatStart = (int)($_POST["seat_start"] ?? 0);
+
 
     $localErrors = [];
 
@@ -102,6 +106,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     if ($categorieId <= 0) $localErrors[] = "Veuillez choisir une catégorie.";
     if ($qty < 1 || $qty > 4) $localErrors[] = "Quantité invalide (1 à 4).";
+    if ($seatStart < 1) $localErrors[] = "Veuillez choisir une place de départ valide.";
+    if ($seatStart > (int)$match["total_places"]) $localErrors[] = "La place choisie dépasse la capacité du match.";
+
+    $lastWantedSeat = $seatStart + $qty - 1;
+    if ($lastWantedSeat > (int)$match["total_places"]) {
+        $localErrors[] = "Vos places dépassent la capacité. Dernière place demandée: $lastWantedSeat.";
+    }
 
     /* vérifier la catégorie existe et appartient au match */
     $cat = $categoryRepo->getByIdForMatch($categorieId, $matchId);
@@ -135,16 +146,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     try {
         $pdo->beginTransaction();
 
-        /* reprendre max place actuelle du match */
-        $stmtMaxSeat = $pdo->prepare("SELECT COALESCE(MAX(place_numero), 0) FROM tickets WHERE match_id = ?");
-        $stmtMaxSeat->execute([$matchId]);
-        $lastSeat = (int)$stmtMaxSeat->fetchColumn();
-
         $createdSeats = [];
         $createdCodes = [];
 
         for ($i = 1; $i <= $qty; $i++) {
-            $seat = $lastSeat + $i;
+            $seat = $seatStart + ($i - 1);
+            $stmtCheckSeat = $pdo->prepare("SELECT 1 FROM tickets WHERE match_id = ? AND place_numero = ? LIMIT 1");
+            $stmtCheckSeat->execute([$matchId, $seat]);
+            if ($stmtCheckSeat->fetchColumn()) {
+                throw new Exception("La place $seat est déjà réservée.");
+            }
+
 
             /* sécurité: ne pas dépasser total_places */
             if ($seat > (int)$match["total_places"]) {
@@ -172,8 +184,30 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         $pdo->commit();
 
+        // 1) Générer le PDF
+        $pdfInfo = $ticketService->generatePurchasePdf($me, $match, $cat, $createdSeats, $createdCodes);
+        $_SESSION["last_pdf"] = $pdfInfo["relative"];
+
+        // 2) Envoyer email (si possible)
+        $toName = trim(($me["prenom_user"] ?? "") . " " . ($me["nom_user"] ?? ""));
+        $subject = "Vos tickets BuyMatch - " . $match["equipe1_nom"] . " vs " . $match["equipe2_nom"];
+
+        $body = "
+          <p>Bonjour <b>$toName</b>,</p>
+          <p>Votre achat est confirmé.</p>
+          <p>Vous trouverez votre ticket en pièce jointe (PDF).</p>
+          <p>Merci,<br>BuyMatch</p>
+        ";
+
+        $emailSent = $ticketService->sendTicketEmail($me["email_user"], $toName, $subject, $body, $pdfInfo["absolute"]);
+
+
         /* message + info tickets */
-        $_SESSION["success"] = "Achat réussi. Places: " . implode(", ", $createdSeats);
+        if ($emailSent) {
+            $_SESSION["success"] = "Achat réussi. PDF envoyé par email. Places: " . implode(", ", $createdSeats);
+        } else {
+            $_SESSION["success"] = "Achat réussi. PDF généré (email non envoyé). Places: " . implode(", ", $createdSeats);
+        }
         $_SESSION["last_tickets"] = [
             "match_id" => $matchId,
             "seats" => $createdSeats,
@@ -317,7 +351,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </span>
           </div>
         </div>
-
+        <div class="field">
+          <label>Choisir la place (début)</label>
+          <input class="input" type="number" name="seat_start" min="1" max="<?= (int)$match["total_places"] ?>" required>
+          <p style="margin:6px 0 0;color:var(--muted);font-size:12px;">
+            Exemple : si vous achetez 3 billets et vous mettez 10 → vous aurez 10, 11, 12.
+          </p>
+        </div>
         <div class="card-actions" style="margin-top:14px;">
           <button class="btn btn-primary" type="submit">
             <i class="fa-solid fa-credit-card"></i> Confirmer l'achat
@@ -341,6 +381,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   <div class="container">© 2026 BuyMatch</div>
 </footer>
 
-<script src="assets/script.js"></script>
+<script src="../assets/script.js"></script>
 </body>
 </html>
