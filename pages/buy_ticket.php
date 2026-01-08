@@ -5,6 +5,8 @@ error_reporting(E_ALL);
 
 session_start();
 require_once __DIR__ . "/../config/database.php";
+require_once __DIR__ . "/../classes/Category.php";
+
 
 /* 1) Sécurité: seulement acheteur */
 if (!isset($_SESSION["user_id"])) {
@@ -20,6 +22,8 @@ if (($_SESSION["role"] ?? "") !== "acheteur") {
 }
 
 $pdo = Database::getInstance();
+$categoryRepo = new Category($pdo);
+
 
 /* 2) Infos user (photo + nom dans nav) */
 $stmtMe = $pdo->prepare("SELECT id_user, nom_user, prenom_user, photo_user FROM users WHERE id_user = ? LIMIT 1");
@@ -48,12 +52,8 @@ if (!$match) {
 }
 
 /* 5) Charger catégories du match */
-$stmtCats = $pdo->prepare("SELECT id_categorie, nom_categorie, prix_categorie, places_max
-                           FROM categories
-                           WHERE match_id = ?
-                           ORDER BY prix_categorie ASC");
-$stmtCats->execute([$matchId]);
-$categories = $stmtCats->fetchAll();
+$categories = $categoryRepo->listByMatch($matchId);
+
 
 if (!$categories || count($categories) === 0) {
     $_SESSION["error"] = "Aucune catégorie disponible pour ce match.";
@@ -104,13 +104,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if ($qty < 1 || $qty > 4) $localErrors[] = "Quantité invalide (1 à 4).";
 
     /* vérifier la catégorie existe et appartient au match */
-    $cat = null;
-    foreach ($categories as $c) {
-        if ((int)$c["id_categorie"] === $categorieId) {
-            $cat = $c;
-            break;
-        }
-    }
+    $cat = $categoryRepo->getByIdForMatch($categorieId, $matchId);
     if (!$cat) $localErrors[] = "Catégorie invalide.";
 
     if ($remainingTotal <= 0) {
@@ -121,11 +115,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     /* vérifier places restantes dans la catégorie */
     if ($cat) {
-        $stmtSoldCat = $pdo->prepare("SELECT COUNT(*) FROM tickets WHERE match_id = ? AND categorie_id = ?");
-        $stmtSoldCat->execute([$matchId, $categorieId]);
-        $soldCat = (int)$stmtSoldCat->fetchColumn();
+        $remainingCat = $categoryRepo->remainingPlaces($matchId, $categorieId);
 
-        $remainingCat = (int)$cat["places_max"] - $soldCat;
 
         if ($remainingCat <= 0) {
             $localErrors[] = "Plus de places disponibles dans cette catégorie.";

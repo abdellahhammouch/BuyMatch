@@ -11,8 +11,11 @@ if (!isset($_SESSION["user_id"]) || ($_SESSION["role"] ?? "") !== "organisateur"
 }
 
 require_once __DIR__ . "/../config/database.php";
+require_once __DIR__ . "/../classes/Category.php";
 
 $pdo = Database::getInstance();
+$categoryRepo = new Category($pdo);
+
 $organisateurId = (int)$_SESSION["user_id"];
 
 $success = $_SESSION["success"] ?? null;
@@ -189,11 +192,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $matchId = (int)$pdo->lastInsertId();
 
         if (!empty($catsToInsert)) {
-            $stmtCat = $pdo->prepare("INSERT INTO categories (match_id, nom_categorie, prix_categorie, places_max)
-                                      VALUES (?, ?, ?, ?)");
-            foreach ($catsToInsert as $c) {
-                $stmtCat->execute([$matchId, $c["nom"], $c["prix"], $c["places"]]);
-            }
+            $$categoryRepo->create($matchId, $c["nom"], $c["prix"], $c["places"]);
         }
 
         $pdo->commit();
