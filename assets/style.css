@@ -1367,141 +1367,67 @@ form{
   .cards-grid{ grid-template-columns: 1fr; }
 }
 
-/* ===== BuyMatch Modal ===== */
+/* ===== BuyMatch Modal (UNIQUE) ===== */
 .bm-modal{
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: 9999;
   display: none;
 }
+
 .bm-modal-backdrop{
-  position:absolute;
-  inset:0;
+  position: absolute;
+  inset: 0;
   background: rgba(0,0,0,.55);
+  backdrop-filter: blur(4px);
 }
+
 .bm-modal-card{
   position: relative;
-  width: min(720px, calc(100% - 26px));
+  width: min(720px, calc(100% - 24px));
   margin: 80px auto;
-  background: rgba(15,26,45,.98);
+  background: rgba(15,26,45,.96);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   overflow: hidden;
+
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
 }
+
 .bm-modal-head{
+  flex: 0 0 auto;
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:12px;
-  padding: 14px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--line);
 }
+
 .bm-modal-body{
-  padding: 14px;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 16px 16px 14px;
 }
+
 .bm-modal-close{
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   border-radius: 12px;
   border: 1px solid var(--line);
   background: rgba(255,255,255,.04);
   color: var(--text);
   cursor: pointer;
 }
-.bm-modal-close:hover{ background: rgba(255,255,255,.07); }
-
-
-/* BuyMatch Modal */
-.bm-modal{
-  position:fixed;
-  inset:0;
-  z-index:9999;
-}
-
-.bm-modal-backdrop{
-  position:absolute;
-  inset:0;
-  background:rgba(0,0,0,.55);
-  backdrop-filter: blur(4px);
-}
-
-.bm-modal-card{
-  position:relative;
-  width:min(720px, calc(100% - 24px));
-  margin:80px auto;
-  background: rgba(15,26,45,.96);
-  border:1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  overflow:hidden;
-}
-
-.bm-modal-head{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:14px 16px;
-  border-bottom:1px solid var(--line);
-}
-
-.bm-modal-body{
-  padding:16px;
-}
-
-.bm-modal-close{
-  width:40px;
-  height:40px;
-  border-radius:12px;
-  border:1px solid var(--line);
-  background: rgba(255,255,255,.04);
-  color: var(--text);
-  cursor:pointer;
-}
 .bm-modal-close:hover{
   background: rgba(255,255,255,.07);
 }
 
-/* ===== BuyMatch Modal Scroll Fix ===== */
-
-/* the overlay (keep it fixed on screen) */
-.bm-modal{
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-}
-
-/* dark background */
-.bm-modal-backdrop{
-  position: absolute;
-  inset: 0;
-}
-
-/* the modal box */
-.bm-modal-card{
-  position: relative;
-  max-height: 85vh;
-  overflow: hidden;          
-  display: flex;             
-  flex-direction: column;    
-}
-
-/* header stays visible */
-.bm-modal-head{
-  flex: 0 0 auto;
-}
-
-/* body becomes scrollable */
-.bm-modal-body{
-  flex: 1 1 auto;
-  overflow-y: auto;
-  padding-bottom: 14px;
-}
-
-/* optional: nicer scrollbar (works in Chrome/Edge) */
-.bm-modal-body::-webkit-scrollbar{
-  width: 10px;
-}
+/* scrollbar */
+.bm-modal-body::-webkit-scrollbar{ width: 10px; }
 .bm-modal-body::-webkit-scrollbar-thumb{
   border-radius: 999px;
   background: rgba(255,255,255,.18);
@@ -1509,4 +1435,5 @@ form{
 .bm-modal-body::-webkit-scrollbar-track{
   background: rgba(255,255,255,.06);
 }
+
 
