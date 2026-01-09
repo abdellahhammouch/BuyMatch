@@ -6,14 +6,14 @@ session_start();
 require_once __DIR__ . "/../config/database.php";
 require_once __DIR__ . "/../classes/MatchSport.php";
 
-$ms = new MatchSport($pdo);
 
 if (!isset($_SESSION["user_id"]) || ($_SESSION["role"] ?? "") !== "admin") {
-    header("Location: ../auth/login.php");
-    exit;
+  header("Location: ../auth/login.php");
+  exit;
 }
 
 $pdo = Database::getInstance();
+$ms = new MatchSport($pdo);
 
 $success = $_SESSION["success"] ?? null;
 $error   = $_SESSION["error"] ?? null;

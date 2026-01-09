@@ -38,7 +38,8 @@ class Ticket
         }
 
         $safeMatch = preg_replace('/[^a-zA-Z0-9_-]/', '_', $match['equipe1_nom'] . '_vs_' . $match['equipe2_nom']);
-        $filename = 'ticket_' . (int)$match['id_match'] . '_' . (int)$me['id_user'] . '_' . time() . '_' . $safeMatch . '.pdf';
+        $catId = (int)($category['id_categorie'] ?? 0);
+        $filename = 'ticket_' . (int)$match['id_match'] . '_' . (int)$me['id_user'] . '_' . $catId . '_' . time() . '_' . $safeMatch . '.pdf';
 
         $absolutePath = $dir . '/' . $filename;
         $relativePath = 'uploads/tickets/' . $filename;

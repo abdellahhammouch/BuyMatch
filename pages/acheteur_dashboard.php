@@ -6,6 +6,22 @@ error_reporting(E_ALL);
 session_start();
 require_once __DIR__ . "/../config/database.php";
 
+date_default_timezone_set('Africa/Casablanca');
+
+function isMatchEnded(string $date, string $time, int $durationMinutes = 120): bool
+{
+    $time = (strlen($time) === 5) ? ($time . ':00') : $time;
+
+    $start = DateTime::createFromFormat('Y-m-d H:i:s', $date . ' ' . $time);
+    if (!$start) return false;
+
+    $end = (clone $start)->modify("+{$durationMinutes} minutes");
+    $now = new DateTime('now');
+
+    return $now >= $end;
+}
+
+
 $isLogged = isset($_SESSION["user_id"]);
 $role = $_SESSION["role"] ?? null;
 
@@ -43,7 +59,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["add_comment"])) {
     if ($contenu === "") $localErrors[] = "Commentaire obligatoire.";
     if ($note < 1 || $note > 5) $localErrors[] = "Note invalide (1 à 5).";
 
-    // Vérifier que l'acheteur a au moins 1 ticket dans ce match
     if (empty($localErrors)) {
         $stmtCheck = $pdo->prepare("SELECT COUNT(*) FROM tickets 
                                     WHERE acheteur_id = ? AND match_id = ?");
@@ -52,6 +67,21 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["add_comment"])) {
 
         if ($hasTicket <= 0) {
             $localErrors[] = "Vous ne pouvez commenter que les matchs où vous avez un ticket.";
+        }
+        if (empty($localErrors)) {
+          $stmtMatchTime = $pdo->prepare("SELECT date_match, heure_match FROM matchs 
+                                          WHERE id_match = ? LIMIT 1");
+          $stmtMatchTime->execute([$matchIdPost]);
+          $mt = $stmtMatchTime->fetch();
+
+          if (!$mt) {
+              $localErrors[] = "Match introuvable.";
+          } else {
+              $ended = isMatchEnded($mt["date_match"], $mt["heure_match"], 120);
+              if (!$ended) {
+                  $localErrors[] = "Vous ne pouvez commenter qu'après la fin du match.";
+              }
+          }
         }
     }
 
@@ -62,12 +92,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["add_comment"])) {
     }
 
     // Insert comment
-    $stmtIns = $pdo->prepare("INSERT INTO comments (match_id, user_id, note, contenu) VALUES (?, ?, ?, ?)");
+    $stmtIns = $pdo->prepare("INSERT INTO comments (match_id, user_id, note, contenu) 
+                              VALUES (?, ?, ?, ?)");
     $stmtIns->execute([$matchIdPost, $_SESSION["user_id"], $note, $contenu]);
 
     $_SESSION["success"] = "Commentaire ajouté.";
     header("Location: acheteur_dashboard.php?open=" . $matchIdPost);
-    exit;
+    exit;                                       
 }
 
 
@@ -79,7 +110,7 @@ if ($isLogged) {
                               LIMIT 1");
     $stmtMe->execute([$_SESSION["user_id"]]);
     $me = $stmtMe->fetch();
-}
+} 
 
 $q = trim($_GET["q"] ?? "");
 $lieu = trim($_GET["lieu"] ?? "");
@@ -123,6 +154,13 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $matchs = $stmt->fetchAll();
 
+$matchEnded = [];
+foreach ($matchs as $m) {
+    $mid = (int)$m["id_match"];
+    $matchEnded[$mid] = isMatchEnded($m["date_match"], $m["heure_match"], 120);
+}
+
+
 /* ---------- catégories + tickets vendus (pour les modals) ---------- */
 $catsByMatch = [];
 $soldTotalByMatch = [];
@@ -136,6 +174,7 @@ foreach ($matchs as $m) {
 /* ---------- Peut commenter ? (acheteur + ticket) ---------- */
 $canComment = [];
 $commentsByMatch = [];
+$hasTicketMatch = [];
 
 if ($isLogged && $role === "acheteur" && count($matchIds) > 0) {
     $placeholders = implode(",", array_fill(0, count($matchIds), "?"));
@@ -151,7 +190,9 @@ if ($isLogged && $role === "acheteur" && count($matchIds) > 0) {
     $stmtMyTickets->execute($paramsTickets);
 
     foreach ($stmtMyTickets->fetchAll() as $r) {
-        $canComment[(int)$r["match_id"]] = true;
+      $mid = (int)$r["match_id"];
+      $hasTicketMatch[$mid] = true;
+      $canComment[$mid] = !empty($matchEnded[$mid]);
     }
 
     // Charger commentaires des matchs affichés
@@ -217,6 +258,7 @@ if (count($matchIds) > 0) {
         $stmtHist = $pdo->prepare("SELECT m.id_match,
                 m.equipe1_nom, m.equipe2_nom,
                 m.date_match, m.heure_match, m.lieu_match,
+                c.id_categorie AS categorie_id,
                 c.nom_categorie,
                 COUNT(*) AS qty,
                 GROUP_CONCAT(t.place_numero ORDER BY t.place_numero SEPARATOR ', ') AS seats,
@@ -312,19 +354,6 @@ if (count($matchIds) > 0) {
     <?php if ($error): ?>
       <div class="error-message" style="margin-bottom:14px;">
         <i class="fa-solid fa-triangle-exclamation"></i> <?= $error ?>
-      </div>
-    <?php endif; ?>
-    <?php if (!empty($_SESSION["last_pdf"])): ?>
-      <div class="card" style="margin-bottom:14px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
-          <div>
-            <div style="font-weight:700;">Votre ticket PDF est prêt ✅</div>
-            <div style="color:var(--muted);font-size:13px;">Téléchargez-le ou vérifiez votre email.</div>
-          </div>
-          <a class="btn btn-primary" href="download_ticket.php">
-            <i class="fa-solid fa-file-pdf"></i> Télécharger PDF
-          </a>
-        </div>
       </div>
     <?php endif; ?>
 
@@ -591,15 +620,14 @@ if (count($matchIds) > 0) {
                         <input type="hidden" name="match_id" value="<?= $mid ?>">
 
                         <div class="form-row">
-                          <div class="field">
-                            <label>Note (1 à 5)</label>
-                            <select class="select" name="note" required>
-                              <option value="5">5</option>
-                              <option value="4">4</option>
-                              <option value="3">3</option>
-                              <option value="2">2</option>
-                              <option value="1">1</option>
-                            </select>
+                          <div class="rating">
+                            <input type="hidden" name="note" id="stars" value="0">
+
+                            <i class="fa-solid fa-star" data-value="1"></i>
+                            <i class="fa-solid fa-star" data-value="2"></i>
+                            <i class="fa-solid fa-star" data-value="3"></i>
+                            <i class="fa-solid fa-star" data-value="4"></i>
+                            <i class="fa-solid fa-star" data-value="5"></i>
                           </div>
                         </div>
 
@@ -614,6 +642,11 @@ if (count($matchIds) > 0) {
                           </button>
                         </div>
                       </form>
+                    </div>
+
+                  <?php elseif ($isLogged && $role === "acheteur" && !empty($hasTicketMatch[$mid])): ?>
+                    <div style="margin-top:12px; color:var(--muted); font-size:13px;">
+                      Vous pourrez commenter <b>après la fin du match</b>.
                     </div>
 
                   <?php elseif ($isLogged && $role === "acheteur"): ?>
@@ -691,6 +724,7 @@ if (count($matchIds) > 0) {
               <th>Qté</th>
               <th>Places</th>
               <th>Total</th>
+              <th>PDF</th>
             </tr>
           </thead>
           <tbody>
@@ -703,6 +737,12 @@ if (count($matchIds) > 0) {
                 <td><?= (int)$h["qty"] ?></td>
                 <td><?= $h["seats"] ?></td>
                 <td><strong><?= $h["total_paid"] ?> DH</strong></td>
+                <td>
+                  <a class="btn btn-ghost btn-sm"
+                    href="download_ticket.php?match_id=<?= (int)$h["id_match"] ?>&categorie_id=<?= (int)$h["categorie_id"] ?>">
+                    <i class="fa-solid fa-file-pdf"></i> Télécharger
+                  </a>
+                </td>
               </tr>
             <?php endforeach; ?>
           </tbody>

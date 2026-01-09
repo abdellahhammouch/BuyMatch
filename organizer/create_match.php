@@ -132,13 +132,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $catsToInsert = [];
     $sumCatPlaces = 0;
 
+    $catsToInsert = [];
+    $sumCatPlaces = 0;
+
     for ($i = 0; $i < 3; $i++) {
-        $n = trim($catNames[$i] ?? "");
-        $p = trim($catPrices[$i] ?? "");
+        $n  = trim($catNames[$i] ?? "");
+        $p  = trim($catPrices[$i] ?? "");
         $pl = trim($catPlaces[$i] ?? "");
 
-        if ($n === "" && $p === "" && $pl === "") continue;
+        // Ligne totalement vide => ignore
+        if ($n === "" && $p === "" && $pl === "") {
+            continue;
+        }
 
+        // Ligne incomplète => erreur
         if ($n === "" || $p === "" || $pl === "") {
             $formErrors[] = "Catégorie " . ($i + 1) . " incomplète (nom + prix + places).";
             continue;
@@ -147,8 +154,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $price = (float)$p;
         $placesCat = (int)$pl;
 
-        if ($price < 0) $formErrors[] = "Prix invalide pour catégorie " . ($i + 1) . ".";
-        if ($placesCat <= 0) $formErrors[] = "Places invalides pour catégorie " . ($i + 1) . ".";
+        if ($price <= 0) {
+            $formErrors[] = "Prix invalide pour catégorie " . ($i + 1) . ".";
+            continue;
+        }
+        if ($placesCat <= 0) {
+            $formErrors[] = "Places invalides pour catégorie " . ($i + 1) . ".";
+            continue;
+        }
 
         $sumCatPlaces += $placesCat;
 
@@ -157,11 +170,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             "prix" => $price,
             "places" => $placesCat
         ];
+        if (count($catsToInsert) === 0) {
+            $formErrors[] = "Vous devez ajouter au moins 1 catégorie (nom + prix + places).";
+          }
+    }
+
+    if (count($catsToInsert) === 0) {
+        $formErrors[] = "Vous devez ajouter au moins 1 catégorie.";
     }
 
     if (!empty($catsToInsert) && $sumCatPlaces > $places) {
         $formErrors[] = "La somme des places des catégories dépasse la capacité totale.";
     }
+
 
     if (!empty($formErrors)) {
         $_SESSION["errors"] = $formErrors;
@@ -192,8 +213,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $matchId = (int)$pdo->lastInsertId();
 
         if (!empty($catsToInsert)) {
-            $$categoryRepo->create($matchId, $c["nom"], $c["prix"], $c["places"]);
+          foreach ($catsToInsert as $c) {
+              $categoryRepo->create(
+                  $matchId,
+                  $c["nom"],
+                  (float)$c["prix"],
+                  (int)$c["places"]
+              );
+          }
         }
+
 
         $pdo->commit();
 
@@ -201,11 +230,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         header("Location: organisateur_dashboard.php");
         exit;
 
-    } catch (PDOException $e) {
-        $pdo->rollBack();
-        $_SESSION["errors"] = ["Erreur DB: " . $e->getMessage()];
-        header("Location: create_match.php");
-        exit;
+    } catch (Throwable $e) {
+      if ($pdo->inTransaction()) $pdo->rollBack();
+      $_SESSION["errors"] = ["Erreur DB: " . $e->getMessage()];
+      header("Location: create_match.php");
+      exit;
     }
 }
 ?>
@@ -377,7 +406,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
               <input class="input" type="number" name="cat_places[]" value="<?= $old["cat_places"][$i] ?? "" ?>" placeholder="Nombre de places" min="0" />
             </div>
           </div>
-        <?php endfor; ?>
+        <?php endfor;?>
+        
 
         <div style="margin-top:24px; display:flex; gap:12px; flex-wrap:wrap;">
           <button class="btn btn-primary" type="submit">
